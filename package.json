@@ -1,0 +1,21 @@
+{
+  "name": "green-light",
+  "version": "1.0.0",
+  "description": "A social app for organizing playdates",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["lit-element", "supabase", "playdates"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@lit/reactive-element": "^1.0.0",
+    "lit": "^2.7.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "vite": "^4.0.0",
+    "typescript": "^4.9.0"
+  }
+}
