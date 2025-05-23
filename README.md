@@ -13,42 +13,7 @@ A social app for organizing playdates using Supabase and Lit Elements.
 ## Setup
 
 1. Create a Supabase project at https://supabase.com
-2. Create the following tables in your Supabase database:
-
-```sql
--- Users table (handled by Supabase Auth)
-create table public.users (
-  id uuid references auth.users not null primary key,
-  email text,
-  username text,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Friend Lists
-create table public.friend_lists (
-  id uuid default uuid_generate_v4() primary key,
-  name text not null,
-  owner_id uuid references public.users not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Friend List Members
-create table public.friend_list_members (
-  list_id uuid references public.friend_lists not null,
-  user_id uuid references public.users not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  primary key (list_id, user_id)
-);
-
--- Green Lights
-create table public.green_lights (
-  id uuid default uuid_generate_v4() primary key,
-  list_id uuid references public.friend_lists not null,
-  is_active boolean default true,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  expires_at timestamp with time zone not null
-);
-```
+2. Create the tables in your Supabase database:
 
 3. Copy your Supabase project URL and anon key from the project settings
 4. Update `src/supabase.ts` with your Supabase credentials
