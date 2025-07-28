@@ -32,7 +32,9 @@ export default function CreateLightPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
   const [maxLimit, setMaxLimit] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -200,9 +202,22 @@ export default function CreateLightPage() {
       // Remove duplicates
       const uniqueUserIds = [...new Set(usersToInvite)];
 
-      // Create invitations
-      if (uniqueUserIds.length > 0) {
-        const invitations = uniqueUserIds.map(userId => ({
+      // Get all existing invitations for this light (for edit case)
+      const { data: existingInvitations, error: checkError } = await supabase
+        .from('light_invitations')
+        .select('user_id, status')
+        .eq('light_id', lightId);
+      
+      if (checkError) throw checkError;
+      
+      const existingUserIds = existingInvitations?.map(inv => inv.user_id) || [];
+      
+      // Find users who need new invitations (not already invited)
+      const newUserIds = uniqueUserIds.filter(userId => !existingUserIds.includes(userId));
+      
+      // Create invitations only for new users
+      if (newUserIds.length > 0) {
+        const invitations = newUserIds.map(userId => ({
           light_id: lightId,
           user_id: userId,
           status: 'pending'
@@ -210,7 +225,7 @@ export default function CreateLightPage() {
 
         const { error: inviteError } = await supabase
           .from('light_invitations')
-          .upsert(invitations, { onConflict: 'light_id,user_id' });
+          .insert(invitations);
         
         if (inviteError) throw inviteError;
       }
@@ -238,8 +253,8 @@ export default function CreateLightPage() {
             title,
             description: description || null,
             location,
-            start_time: startTime,
-            end_time: endTime,
+            start_time: startDate && startTime ? new Date(`${startDate}T${startTime}:00`).toISOString() : "",
+            end_time: endDate && endTime ? new Date(`${endDate}T${endTime}:00`).toISOString() : "",
             max_limit: maxLimit ? parseInt(maxLimit) : null,
             image_url: imageUrl,
             author_id: currentUser.id,
@@ -317,34 +332,66 @@ export default function CreateLightPage() {
             />
           </div>
 
-          {/* Start Time */}
-          <div>
-            <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
-              Start time
-            </label>
-            <input
-              type="datetime-local"
-              id="startTime"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+          {/* Start Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
+                Start date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
+                Start time
+              </label>
+              <input
+                type="time"
+                id="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                step="60"
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
-          {/* End Time */}
-          <div>
-            <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
-              End time
-            </label>
-            <input
-              type="datetime-local"
-              id="endTime"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+          {/* End Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
+                End date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
+                End time
+              </label>
+              <input
+                type="time"
+                id="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                step="60"
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           {/* Max Limit */}

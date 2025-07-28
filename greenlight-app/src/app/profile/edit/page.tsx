@@ -33,18 +33,59 @@ export default function EditProfilePage() {
     });
   }, []);
 
+  const cropImageToSquare = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      
+      img.onload = () => {
+        // Calculate the square crop dimensions
+        const size = Math.min(img.width, img.height);
+        const startX = (img.width - size) / 2;
+        const startY = (img.height - size) / 2;
+        
+        // Set canvas size to the square size
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Draw the cropped square image
+        ctx?.drawImage(img, startX, startY, size, size, 0, 0, size, size);
+        
+        // Convert to blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob from canvas'));
+          }
+        }, file.type, 0.9);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFileName(file.name);
     setUploading(true);
     try {
-      // Compress the image
-      const compressed = await imageCompression(file, {
+      // First crop the image to a square
+      const croppedBlob = await cropImageToSquare(file);
+      
+      // Convert blob to file for compression
+      const croppedFile = new File([croppedBlob], file.name, { type: file.type });
+      
+      // Compress the cropped square image
+      const compressed = await imageCompression(croppedFile, {
         maxWidthOrHeight: 128,
         maxSizeMB: 0.1,
         useWebWorker: true,
       });
+      
       // Upload to Supabase storage
       const userId = (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error("User not found");

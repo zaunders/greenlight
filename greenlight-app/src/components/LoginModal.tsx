@@ -13,12 +13,15 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [usePassword, setUsePassword] = useState(false);
+  const [isResetPassword, setIsResetPassword] = useState(false);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(false);
+    
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password });
       setLoading(false);
@@ -28,12 +31,22 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         setSuccess(true);
       }
     } else {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      setLoading(false);
-      if (error) {
-        setError(error.message);
+      if (usePassword) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        setLoading(false);
+        if (error) {
+          setError(error.message);
+        } else {
+          onClose(); // Close modal on successful login
+        }
       } else {
-        setSuccess(true);
+        const { error } = await supabase.auth.signInWithOtp({ email });
+        setLoading(false);
+        if (error) {
+          setError(error.message);
+        } else {
+          setSuccess(true);
+        }
       }
     }
   };
@@ -44,6 +57,24 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
     setLoading(false);
     if (error) setError(error.message);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=reset-password`
+    });
+    
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess(true);
+    }
   };
 
   if (!isOpen) return null;
@@ -59,9 +90,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           &times;
         </button>
         <h2 className="text-2xl font-bold mb-6 text-center">
-          {isSignUp ? "Create your Greenlight account" : "Sign in to Greenlight"}
+          {isResetPassword 
+            ? "Reset your password" 
+            : isSignUp 
+              ? "Create your Greenlight account" 
+              : "Sign in to Greenlight"}
         </h2>
-        <form onSubmit={handleEmailAuth} className="flex flex-col gap-4 mb-4">
+        <form onSubmit={isResetPassword ? handleResetPassword : handleEmailAuth} className="flex flex-col gap-4 mb-4">
           <input
             type="email"
             placeholder="Email"
@@ -70,7 +105,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             required
             className="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
-          {isSignUp && (
+          {(isSignUp || (!isSignUp && usePassword && !isResetPassword)) && (
             <input
               type="password"
               placeholder="Password"
@@ -80,18 +115,80 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               className="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             />
           )}
+          
+          {/* Toggle between password and magic link for sign-in */}
+          {!isSignUp && !isResetPassword && (
+            <div className="flex bg-gray-200 rounded-full p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setUsePassword(false);
+                  setError(null);
+                  setSuccess(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
+                  !usePassword
+                    ? 'bg-white text-gray-800 shadow'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Magic Link
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsePassword(true);
+                  setError(null);
+                  setSuccess(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
+                  usePassword
+                    ? 'bg-white text-gray-800 shadow'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Password
+              </button>
+            </div>
+          )}
+
+          {/* Forgot Password Link */}
+          {!isSignUp && usePassword && !isResetPassword && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetPassword(true);
+                  setError(null);
+                  setSuccess(false);
+                }}
+                className="text-green-700 underline hover:text-green-900 text-sm"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
+          
           <button
             type="submit"
             className="bg-green-600 text-white rounded px-4 py-2 font-semibold hover:bg-green-700 transition"
             disabled={loading}
           >
             {loading
-              ? isSignUp
-                ? "Creating account..."
-                : "Sending magic link..."
-              : isSignUp
-                ? "Create Account"
-                : "Sign in with Email"}
+              ? isResetPassword
+                ? "Sending reset email..."
+                : isSignUp
+                  ? "Creating account..."
+                  : usePassword
+                    ? "Signing in..."
+                    : "Sending magic link..."
+              : isResetPassword
+                ? "Send Reset Email"
+                : isSignUp
+                  ? "Create Account"
+                  : usePassword
+                    ? "Sign in with Password"
+                    : "Sign in with Magic Link"}
           </button>
         </form>
         <button
@@ -103,7 +200,23 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           Sign in with Google
         </button>
         <div className="text-center mt-4">
-          {isSignUp ? (
+          {isResetPassword ? (
+            <span>
+              Remember your password?{' '}
+              <button
+                className="text-green-700 underline hover:text-green-900"
+                onClick={() => { 
+                  setIsResetPassword(false); 
+                  setUsePassword(true);
+                  setError(null); 
+                  setSuccess(false); 
+                }}
+                type="button"
+              >
+                Back to Sign In
+              </button>
+            </span>
+          ) : isSignUp ? (
             <span>
               Already have an account?{' '}
               <button
@@ -130,9 +243,11 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         {error && <div className="text-red-600 text-center mb-2">{error}</div>}
         {success && (
           <div className="text-green-600 text-center mb-2">
-            {isSignUp
-              ? "Check your email to confirm your account!"
-              : "Check your email for a magic link!"}
+            {isResetPassword
+              ? "Check your email for password reset instructions!"
+              : isSignUp
+                ? "Check your email to confirm your account!"
+                : "Check your email for a magic link!"}
           </div>
         )}
       </div>

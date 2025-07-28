@@ -48,7 +48,9 @@ export default function EditLightPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
   const [maxLimit, setMaxLimit] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -96,8 +98,27 @@ export default function EditLightPage() {
       setTitle(data.title);
       setDescription(data.description || "");
       setLocation(data.location);
-      setStartTime(new Date(data.start_time).toISOString().slice(0, 16));
-      setEndTime(new Date(data.end_time).toISOString().slice(0, 16));
+      // Parse start time into separate date and time (convert from UTC to local)
+      const startDateTime = new Date(data.start_time);
+      const startDateStr = startDateTime.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      const startTimeStr = startDateTime.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      setStartDate(startDateStr);
+      setStartTime(startTimeStr);
+      
+      // Parse end time into separate date and time (convert from UTC to local)
+      const endDateTime = new Date(data.end_time);
+      const endDateStr = endDateTime.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      const endTimeStr = endDateTime.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      setEndDate(endDateStr);
+      setEndTime(endTimeStr);
       setMaxLimit(data.max_limit?.toString() || "");
       setImagePreview(data.image_url);
     } catch (err: any) {
@@ -233,9 +254,22 @@ export default function EditLightPage() {
       // Remove duplicates
       const uniqueUserIds = [...new Set(usersToInvite)];
 
-      // Create invitations
-      if (uniqueUserIds.length > 0) {
-        const invitations = uniqueUserIds.map(userId => ({
+      // Get all existing invitations for this light
+      const { data: existingInvitations, error: checkError } = await supabase
+        .from('light_invitations')
+        .select('user_id, status')
+        .eq('light_id', lightId);
+      
+      if (checkError) throw checkError;
+      
+      const existingUserIds = existingInvitations?.map(inv => inv.user_id) || [];
+      
+      // Find users who need new invitations (not already invited)
+      const newUserIds = uniqueUserIds.filter(userId => !existingUserIds.includes(userId));
+      
+      // Create invitations only for new users
+      if (newUserIds.length > 0) {
+        const invitations = newUserIds.map(userId => ({
           light_id: lightId,
           user_id: userId,
           status: 'pending'
@@ -243,7 +277,7 @@ export default function EditLightPage() {
 
         const { error: inviteError } = await supabase
           .from('light_invitations')
-          .upsert(invitations, { onConflict: 'light_id,user_id' });
+          .insert(invitations);
         
         if (inviteError) throw inviteError;
       }
@@ -270,8 +304,8 @@ export default function EditLightPage() {
           title,
           description: description || null,
           location,
-          start_time: startTime,
-          end_time: endTime,
+                                start_time: startDate && startTime ? new Date(`${startDate}T${startTime}:00`).toISOString() : "",
+          end_time: endDate && endTime ? new Date(`${endDate}T${endTime}:00`).toISOString() : "",
           max_limit: maxLimit ? parseInt(maxLimit) : null,
           image_url: imageUrl,
           updated_at: new Date().toISOString(),
@@ -344,34 +378,66 @@ export default function EditLightPage() {
             />
           </div>
 
-          {/* Start Time */}
-          <div>
-            <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
-              Start time
-            </label>
-            <input
-              type="datetime-local"
-              id="startTime"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+          {/* Start Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
+                Start date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
+                Start time
+              </label>
+              <input
+                type="time"
+                id="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                step="60"
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
-          {/* End Time */}
-          <div>
-            <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
-              End time
-            </label>
-            <input
-              type="datetime-local"
-              id="endTime"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+          {/* End Date and Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
+                End date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
+                End time
+              </label>
+              <input
+                type="time"
+                id="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                step="60"
+                required
+                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           {/* Max Limit */}
