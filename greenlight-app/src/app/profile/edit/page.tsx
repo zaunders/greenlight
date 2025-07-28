@@ -25,8 +25,12 @@ export default function EditProfilePage() {
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user as User | null;
       if (user) {
-        setName(user.user_metadata?.name || "");
-        setAvatarUrl(user.user_metadata?.avatar_url || "");
+        // Handle Google OAuth data
+        const googleName = user.user_metadata?.name || user.user_metadata?.full_name;
+        const googleAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+        
+        setName(googleName || "");
+        setAvatarUrl(googleAvatar || "");
         setEmail(user.email || "");
       }
       setLoading(false);
