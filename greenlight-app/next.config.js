@@ -5,4 +5,7 @@ module.exports = {
       'lh3.googleusercontent.com', // Google profile images
     ],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 }; 

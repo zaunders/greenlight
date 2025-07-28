@@ -12,7 +12,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams(); // Unused for now
 
   useEffect(() => {
     const checkSession = async () => {
@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
           router.push('/mylights');
         }, 2000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError("Failed to update password. Please try again.");
     } finally {
       setLoading(false);

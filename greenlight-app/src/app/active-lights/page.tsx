@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
-import Image from "next/image";
 import Link from "next/link";
 
 interface Light {
@@ -113,7 +112,7 @@ export default function ActiveLightsPage() {
       });
       
       setInvitations(currentLights);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching invitations:', err);
     } finally {
       setLoading(false);
@@ -134,7 +133,7 @@ export default function ActiveLightsPage() {
       if (currentUser) {
         await fetchInvitations(currentUser.id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating invitation status:', err);
     } finally {
       setUpdatingStatus(null);
@@ -184,7 +183,7 @@ export default function ActiveLightsPage() {
         {invitations.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <p className="text-green-900 mb-2">No invitations yet</p>
-            <p className="text-sm text-green-700">You'll see lights you've been invited to here</p>
+            <p className="text-sm text-green-700">You&apos;ll see lights you&apos;ve been invited to here</p>
           </div>
         ) : (
           invitations.map((invitation) => (

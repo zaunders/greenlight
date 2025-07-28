@@ -8,7 +8,7 @@ export default function AuthCallbackPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams(); // Unused for now
 
   useEffect(() => {
     const handleAuthCallback = async () => {
