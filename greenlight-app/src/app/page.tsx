@@ -37,12 +37,12 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-100 to-green-300 p-6">
       <h1 className="text-4xl font-bold text-green-800 mb-4 text-center">Greenlight</h1>
-      <Image
+        <Image
         src="/greenlight.png"
         alt="Greenlight Logo"
-        width={180}
+          width={180}
         height={180}
-        priority
+          priority
         className="mb-8 drop-shadow-lg"
       />
       <p className="text-lg text-green-900 mb-8 text-center max-w-xl">

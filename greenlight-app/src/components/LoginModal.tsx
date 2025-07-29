@@ -23,7 +23,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setSuccess(false);
     
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
       setLoading(false);
       if (error) {
         setError(error.message);
@@ -54,7 +60,12 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
     setLoading(false);
     if (error) setError(error.message);
   };
@@ -171,8 +182,12 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           
           <button
             type="submit"
-            className="bg-green-600 text-white rounded px-4 py-2 font-semibold hover:bg-green-700 transition"
-            disabled={loading}
+            className={`rounded px-4 py-2 font-semibold transition ${
+              loading || (isSignUp && success)
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700"
+            }`}
+            disabled={loading || (isSignUp && success)}
           >
             {loading
               ? isResetPassword
@@ -185,7 +200,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               : isResetPassword
                 ? "Send Reset Email"
                 : isSignUp
-                  ? "Create Account"
+                  ? success
+                    ? "Email Sent ✓"
+                    : "Create Account"
                   : usePassword
                     ? "Sign in with Password"
                     : "Sign in with Magic Link"}
@@ -193,8 +210,12 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </form>
         <button
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded px-4 py-2 font-semibold hover:bg-gray-100 transition mb-2"
-          disabled={loading}
+          className={`w-full flex items-center justify-center gap-2 border rounded px-4 py-2 font-semibold transition mb-2 ${
+            loading || (isSignUp && success)
+              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-white border-gray-300 hover:bg-gray-100"
+          }`}
+          disabled={loading || (isSignUp && success)}
         >
           <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.68 2.54 30.74 0 24 0 14.82 0 6.71 5.82 2.69 14.09l7.98 6.2C12.13 13.6 17.56 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.42-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.59C43.93 37.13 46.1 31.3 46.1 24.55z"/><path fill="#FBBC05" d="M10.67 28.29c-1.13-3.36-1.13-6.97 0-10.33l-7.98-6.2C.7 16.18 0 19.01 0 22c0 2.99.7 5.82 1.96 8.24l8.71-6.95z"/><path fill="#EA4335" d="M24 44c6.74 0 12.42-2.23 16.56-6.07l-7.19-5.59c-2.01 1.35-4.59 2.16-7.37 2.16-6.44 0-11.87-4.1-13.33-9.59l-8.71 6.95C6.71 42.18 14.82 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></g></svg>
           Sign in with Google
