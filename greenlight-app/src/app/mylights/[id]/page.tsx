@@ -264,19 +264,30 @@ export default function LightPage() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!dateString) return 'No date set';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-green-50 flex items-center justify-center">Loading...</div>;
-  if (!light) return null;
+  if (!light) return <div className="min-h-screen bg-green-50 flex items-center justify-center">Light not found</div>;
 
   const isOwner = currentUser?.id === light.author_id;
   const acceptedAttendees = attendees.filter(attendee => attendee.status === 'accepted');
@@ -310,17 +321,17 @@ export default function LightPage() {
           <div className="space-y-3 text-sm text-green-700">
             <div className="flex items-center gap-2">
               <span className="font-medium">📍</span>
-              <span>{light.location}</span>
+              <span>{light.location || 'No location set'}</span>
             </div>
             
             <div className="flex items-center gap-2">
               <span className="font-medium">🕒</span>
-              <span>{formatDate(light.start_time)}</span>
+              <span>{formatDate(light.start_time || '')}</span>
             </div>
             
             <div className="flex items-center gap-2">
               <span className="font-medium">⏰</span>
-              <span>{formatDate(light.end_time)}</span>
+              <span>{formatDate(light.end_time || '')}</span>
             </div>
             
             {light.max_limit && (
@@ -374,31 +385,34 @@ export default function LightPage() {
             )}
             <h3 className="font-semibold text-green-900 mb-3">{goingCount} Going:</h3>
             <div className="flex -space-x-2">
-              {acceptedAttendees.slice(0, maxAvatars).map((attendee, index) => (
-                <div
-                  key={attendee.id}
-                  className="relative group"
-                  title={attendee.user.username}
-                >
-                  <div className="w-8 h-8 rounded-full border-2 border-white bg-green-200 flex items-center justify-center">
-                    {attendee.user.avatar_url ? (
-                      <img 
-                        src={attendee.user.avatar_url} 
-                        alt={attendee.user.username}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-green-600 text-xs font-medium">
-                        {attendee.user.username.charAt(0).toUpperCase()}
-                      </span>
-                    )}
+              {acceptedAttendees.slice(0, maxAvatars).map((attendee, index) => {
+                if (!attendee || !attendee.user) return null;
+                return (
+                  <div
+                    key={attendee.id}
+                    className="relative group"
+                    title={attendee.user.username}
+                  >
+                    <div className="w-8 h-8 rounded-full border-2 border-white bg-green-200 flex items-center justify-center">
+                      {attendee.user.avatar_url ? (
+                        <img 
+                          src={attendee.user.avatar_url} 
+                          alt={attendee.user.username}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-green-600 text-xs font-medium">
+                          {attendee.user.username.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      {attendee.user.username}
+                    </div>
                   </div>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                    {attendee.user.username}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {acceptedAttendees.length > maxAvatars && (
                 <div className="w-8 h-8 rounded-full border-2 border-white bg-green-600 flex items-center justify-center">
                   <span className="text-white text-xs font-medium">
@@ -416,24 +430,27 @@ export default function LightPage() {
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-green-900 mb-2">Pending ({pendingAttendees.length}):</h4>
                 <div className="space-y-1">
-                  {pendingAttendees.slice(0, maxPendingDisplay).map((attendee) => (
-                    <div key={attendee.id} className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center">
-                        {attendee.user.avatar_url ? (
-                          <img 
-                            src={attendee.user.avatar_url} 
-                            alt={attendee.user.username}
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-green-600 text-xs font-medium">
-                            {attendee.user.username.charAt(0).toUpperCase()}
-                          </span>
-                        )}
+                  {pendingAttendees.slice(0, maxPendingDisplay).map((attendee) => {
+                    if (!attendee || !attendee.user) return null;
+                    return (
+                      <div key={attendee.id} className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center">
+                          {attendee.user.avatar_url ? (
+                            <img 
+                              src={attendee.user.avatar_url} 
+                              alt={attendee.user.username}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-green-600 text-xs font-medium">
+                              {attendee.user.username.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-green-900 text-sm">{attendee.user.username}</span>
                       </div>
-                      <span className="text-green-900 text-sm">{attendee.user.username}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {pendingAttendees.length > maxPendingDisplay && (
                     <button
                       onClick={() => setShowAllInvited(true)}
@@ -511,6 +528,7 @@ export default function LightPage() {
             <p className="text-sm text-green-700 text-center py-4">No messages yet. Be the first to say something!</p>
           ) : (
             messages.map((message) => {
+              if (!message || !message.user) return null;
               const canEdit = currentUser?.id === message.user_id;
               const canDelete = currentUser?.id === message.user_id || isOwner;
               const isEditing = editingMessage === message.id;
@@ -535,7 +553,7 @@ export default function LightPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-green-900 text-sm">{message.user.username}</span>
                         <span className="text-xs text-green-600">
-                          {new Date(message.created_at).toLocaleString()}
+                          {message.created_at ? new Date(message.created_at).toLocaleString() : 'Unknown time'}
                         </span>
                       </div>
                       {(canEdit || canDelete) && !isEditing && (
@@ -622,37 +640,40 @@ export default function LightPage() {
             </div>
             <div className="p-4 overflow-y-auto max-h-80">
               <div className="space-y-3">
-                {attendees.map((attendee) => (
-                  <div key={attendee.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center">
-                        {attendee.user.avatar_url ? (
-                          <img 
-                            src={attendee.user.avatar_url} 
-                            alt={attendee.user.username}
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-green-600 text-sm font-medium">
-                            {attendee.user.username.charAt(0).toUpperCase()}
-                          </span>
-                        )}
+                {attendees.map((attendee) => {
+                  if (!attendee || !attendee.user) return null;
+                  return (
+                    <div key={attendee.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center">
+                          {attendee.user.avatar_url ? (
+                            <img 
+                              src={attendee.user.avatar_url} 
+                              alt={attendee.user.username}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-green-600 text-sm font-medium">
+                              {attendee.user.username.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-medium text-green-900">{attendee.user.username}</span>
                       </div>
-                      <span className="font-medium text-green-900">{attendee.user.username}</span>
+                      <span className={`text-xs px-3 py-1 rounded-full ${
+                        attendee.status === 'accepted' 
+                          ? 'bg-green-100 text-green-800' 
+                          : attendee.status === 'declined'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {attendee.status === 'accepted' ? '✓ Going' : 
+                         attendee.status === 'declined' ? '✗ Declined' : 
+                         '⏳ Pending'}
+                      </span>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full ${
-                      attendee.status === 'accepted' 
-                        ? 'bg-green-100 text-green-800' 
-                        : attendee.status === 'declined'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {attendee.status === 'accepted' ? '✓ Going' : 
-                       attendee.status === 'declined' ? '✗ Declined' : 
-                       '⏳ Pending'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
