@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
+import { createLightAttendingNotification } from "@/lib/notifications";
 
 interface Light {
   id: string;
@@ -129,6 +130,58 @@ export default function ActiveLightsPage() {
       
       if (error) throw error;
       
+      // If accepted, create notification for the light owner
+      if (status === 'accepted') {
+        console.log('Creating attendance notification for invitation:', invitationId);
+        
+        // Get the invitation details to create notification
+        const { data: invitationData, error: invitationError } = await supabase
+          .from('light_invitations')
+          .select(`
+            *,
+            light:lights(
+              id,
+              title,
+              author_id
+            ),
+            user:users!light_invitations_user_id_fkey(
+              id,
+              username
+            )
+          `)
+          .eq('id', invitationId)
+          .single();
+        
+        console.log('Invitation data:', invitationData);
+        console.log('Invitation error:', invitationError);
+        
+        if (invitationError) {
+          console.error('Error fetching invitation data:', invitationError);
+        } else if (invitationData) {
+          console.log('Creating notification for light owner:', invitationData.light.author_id);
+          console.log('Light details:', invitationData.light);
+          console.log('User details:', invitationData.user);
+          
+          try {
+            await createLightAttendingNotification(
+              invitationData.light.author_id, // Notify the light owner
+              invitationData.light_id,
+              invitationData.light.title,
+              invitationData.user.username
+            );
+            console.log('Attendance notification created successfully');
+          } catch (notificationError) {
+            console.error('Error creating attendance notification:', notificationError);
+            console.error('Notification error details:', {
+              authorId: invitationData.light.author_id,
+              lightId: invitationData.light_id,
+              lightTitle: invitationData.light.title,
+              attendeeName: invitationData.user.username
+            });
+          }
+        }
+      }
+      
       // Refresh invitations
       if (currentUser) {
         await fetchInvitations(currentUser.id);
@@ -164,7 +217,7 @@ export default function ActiveLightsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'Accepted';
+        return 'Joined';
       case 'declined':
         return 'Declined';
       default:
@@ -249,15 +302,11 @@ export default function ActiveLightsPage() {
                 {invitation.status === 'pending' && (
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        updateInvitationStatus(invitation.id, 'accepted');
-                      }}
+                      onClick={() => updateInvitationStatus(invitation.id, 'accepted')}
                       disabled={updatingStatus === invitation.id}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700 transition disabled:opacity-50 text-sm"
                     >
-                      {updatingStatus === invitation.id ? '...' : 'Accept'}
+                      {updatingStatus === invitation.id ? '...' : 'Join'}
                     </button>
                     <button
                       onClick={(e) => {
@@ -266,7 +315,7 @@ export default function ActiveLightsPage() {
                         updateInvitationStatus(invitation.id, 'declined');
                       }}
                       disabled={updatingStatus === invitation.id}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50"
+                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg font-medium shadow hover:bg-red-700 transition disabled:opacity-50 text-sm"
                     >
                       {updatingStatus === invitation.id ? '...' : 'Decline'}
                     </button>
@@ -278,7 +327,7 @@ export default function ActiveLightsPage() {
         )}
       </div>
 
-      {/* Show Past Lights Button */}
+      {/* See History Button */}
       <div className="mt-6">
         <Link
           href="/past-lights"
@@ -287,7 +336,7 @@ export default function ActiveLightsPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Show Past Lights
+          See History
         </Link>
       </div>
     </div>

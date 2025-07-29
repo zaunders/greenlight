@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
+import { createLightInvitationNotification } from "@/lib/notifications";
 
 interface List {
   id: string;
@@ -228,6 +229,36 @@ export default function CreateLightPage() {
           .insert(invitations);
         
         if (inviteError) throw inviteError;
+
+        // Create notifications for each invitation
+        for (const userId of newUserIds) {
+          try {
+            console.log('Creating invitation notification for user:', userId);
+            console.log('Notification details:', {
+              userId,
+              lightId,
+              title,
+              authorName: currentUser.user_metadata?.name || currentUser.email || 'Someone'
+            });
+            
+            await createLightInvitationNotification(
+              userId,
+              lightId,
+              title,
+              currentUser.user_metadata?.name || currentUser.email || 'Someone'
+            );
+            console.log('Successfully created notification for user:', userId);
+          } catch (error) {
+            console.error('Error creating notification for user:', userId, error);
+            console.error('Full error details:', {
+              userId,
+              lightId,
+              title,
+              authorName: currentUser.user_metadata?.name || currentUser.email || 'Someone',
+              error: error instanceof Error ? error.message : error
+            });
+          }
+        }
       }
     } catch (err: any) {
       console.error('Error saving invitations:', err);

@@ -108,7 +108,7 @@ export default function PastLightsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'Accepted';
+        return 'Joined';
       case 'declined':
         return 'Declined';
       default:

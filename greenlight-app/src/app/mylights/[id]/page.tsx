@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
+import { createLightMessageOwnerNotification, createLightMessageAttendingNotification } from "@/lib/notifications";
 
 interface Light {
   id: string;
@@ -171,6 +172,39 @@ export default function LightPage() {
       
       if (error) throw error;
       
+      // Create notifications for message
+      try {
+        if (light) {
+          // Notify light owner (if message is not from owner)
+          if (currentUser.id !== light.author_id) {
+            await createLightMessageOwnerNotification(
+              light.author_id,
+              lightId,
+              light.title,
+              currentUser.user_metadata?.name || currentUser.email || 'Someone',
+              currentUser.id
+            );
+          }
+          
+          // Notify all accepted attendees (except the message sender)
+          const acceptedAttendees = attendees.filter(attendee => 
+            attendee.status === 'accepted' && attendee.user_id !== currentUser.id
+          );
+          
+          for (const attendee of acceptedAttendees) {
+            await createLightMessageAttendingNotification(
+              attendee.user_id,
+              lightId,
+              light.title,
+              currentUser.user_metadata?.name || currentUser.email || 'Someone',
+              currentUser.id
+            );
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error creating message notifications:', notificationError);
+      }
+      
       setNewMessage("");
       await fetchMessages(); // Refresh messages
     } catch (err: any) {
@@ -297,8 +331,47 @@ export default function LightPage() {
             )}
           </div>
           
+          {/* Action Buttons - Only show for owner */}
+          {isOwner && (
+            <div className="mt-6 flex gap-3">
+              <Link
+                href={`/mylights/${lightId}/edit`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </Link>
+              <button
+                onClick={deleteLight}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium shadow hover:bg-red-700 transition disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          )}
+          
           {/* Attendees Section */}
           <div className="mt-6 pt-4 border-t border-green-200">
+            {/* Manage Invitations Button - Only show for owner */}
+            {isOwner && (
+              <div className="mb-4">
+                <Link
+                  href={`/mylights/${lightId}/invitations`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700 transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Manage Invitations
+                </Link>
+              </div>
+            )}
             <h3 className="font-semibold text-green-900 mb-3">{goingCount} Going:</h3>
             <div className="flex -space-x-2">
               {acceptedAttendees.slice(0, maxAvatars).map((attendee, index) => (
@@ -499,30 +572,7 @@ export default function LightPage() {
         </div>
       </div>
 
-      {/* Action Buttons - Only show for owner */}
-      {isOwner && (
-        <div className="mt-6 flex gap-3">
-          <Link
-            href={`/mylights/${lightId}/edit`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit Light
-          </Link>
-          <button
-            onClick={deleteLight}
-            disabled={deleting}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-full font-semibold shadow hover:bg-red-700 transition disabled:opacity-50"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            {deleting ? 'Deleting...' : 'Delete Light'}
-          </button>
-        </div>
-      )}
+
 
       {/* All Invited Modal */}
       {showAllInvited && (

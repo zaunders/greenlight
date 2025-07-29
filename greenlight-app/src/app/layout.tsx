@@ -17,9 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Greenlight",
   description: "Simple event management app",
-  icons: {
-    icon: "/greenlight.png",
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
