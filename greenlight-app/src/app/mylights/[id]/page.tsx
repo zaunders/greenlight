@@ -177,13 +177,13 @@ export default function LightPage() {
         if (light) {
           // Notify light owner (if message is not from owner)
           if (currentUser.id !== light.author_id) {
-            await createLightMessageOwnerNotification(
-              light.author_id,
-              lightId,
-              light.title,
-              currentUser.user_metadata?.name || currentUser.email || 'Someone',
-              currentUser.id
-            );
+                      await createLightMessageOwnerNotification(
+            light.author_id,
+            lightId,
+            light.title,
+            currentUser.user_metadata?.name || currentUser.email || 'Someone',
+            newMessage.trim()
+          );
           }
           
           // Notify all accepted attendees (except the message sender)
@@ -197,7 +197,7 @@ export default function LightPage() {
               lightId,
               light.title,
               currentUser.user_metadata?.name || currentUser.email || 'Someone',
-              currentUser.id
+              newMessage.trim()
             );
           }
         }
@@ -446,6 +446,35 @@ export default function LightPage() {
               </div>
             )}
           </div>
+          
+          {/* Join Button for Pending Invitations */}
+          {currentUser && !isOwner && pendingAttendees.some(attendee => attendee.user_id === currentUser.id) && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={async () => {
+                  const pendingInvitation = pendingAttendees.find(attendee => attendee.user_id === currentUser.id);
+                  if (pendingInvitation) {
+                    try {
+                      const { error } = await supabase
+                        .from('light_invitations')
+                        .update({ status: 'accepted' })
+                        .eq('id', pendingInvitation.id);
+                      
+                      if (error) throw error;
+                      
+                      // Refresh attendees to update the UI
+                      await fetchAttendees();
+                    } catch (err: any) {
+                      console.error('Error accepting invitation:', err);
+                    }
+                  }
+                }}
+                className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
+              >
+                Join
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
