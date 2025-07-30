@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
+import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
   id: string;
@@ -192,6 +193,23 @@ export default function EditLightPage() {
         .eq('id', lightId);
       
       if (error) throw error;
+      
+      // Update reminders for the event owner
+      try {
+        // Delete existing reminders for this event and owner
+        await deleteRemindersForUser(currentUser.id, lightId);
+        
+        // Create new reminders based on updated event time
+        await createRemindersForUser(
+          currentUser.id,
+          lightId,
+          title,
+          startDateTime.toISOString()
+        );
+        console.log('Reminders updated for event owner:', currentUser.id);
+      } catch (reminderError) {
+        console.error('Error updating reminders for event owner:', reminderError);
+      }
       
       router.push(`/mylights/${lightId}`);
     } catch (err: any) {

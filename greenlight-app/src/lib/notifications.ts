@@ -160,7 +160,8 @@ export async function createLightReminderNotification(
   userId: string,
   lightId: string,
   lightTitle: string,
-  startTime: string
+  startTime: string,
+  advanceHours: number = 1
 ) {
   // Check if user wants to receive this type of notification
   const shouldSend = await shouldSendNotification(userId, 'light_reminder');
@@ -169,16 +170,19 @@ export async function createLightReminderNotification(
     return null;
   }
 
+  const timeText = advanceHours === 1 ? '1 hour' : `${advanceHours} hours`;
+
   return createNotification({
     user_id: userId,
     title: 'Event Reminder',
-    message: `"${lightTitle}" starts in 1 hour`,
+    message: `"${lightTitle}" starts in ${timeText}`,
     type: 'light_reminder',
     related_id: lightId,
     read: false,
     data: {
       light_title: lightTitle,
-      start_time: startTime
+      start_time: startTime,
+      advance_hours: advanceHours
     }
   });
 }

@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
 import { createLightInvitationNotification } from "@/lib/notifications";
+import { createRemindersForUser } from "@/lib/reminders";
 
 interface List {
   id: string;
@@ -337,6 +338,19 @@ export default function CreateLightPage() {
       // Save invitations
       if (lightData) {
         await saveInvitations(lightData.id);
+        
+        // Create reminders for the event owner
+        try {
+          await createRemindersForUser(
+            currentUser.id,
+            lightData.id,
+            lightData.title,
+            lightData.start_time
+          );
+          console.log('Reminders created for event owner:', currentUser.id);
+        } catch (reminderError) {
+          console.error('Error creating reminders for event owner:', reminderError);
+        }
       }
       
       router.push('/mylights');

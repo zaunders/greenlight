@@ -6,7 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
-import { createLightMessageOwnerNotification, createLightMessageAttendingNotification, createLightCancelledNotification } from "@/lib/notifications";
+import { createLightCancelledNotification, createLightMessageOwnerNotification, createLightMessageAttendingNotification } from "@/lib/notifications";
+import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
   id: string;
@@ -139,7 +140,7 @@ export default function LightPage() {
     
     setDeleting(true);
     try {
-      // Notify all accepted attendees before deleting the light
+      // Notify all accepted attendees and delete their reminders before deleting the light
       if (light) {
         try {
           const acceptedAttendees = attendees.filter(attendee => 
@@ -147,15 +148,22 @@ export default function LightPage() {
           );
           
           for (const attendee of acceptedAttendees) {
+            // Send cancellation notification
             await createLightCancelledNotification(
               attendee.user_id,
               lightId,
               light.title,
               currentUser?.user_metadata?.name || currentUser?.email || 'Event organizer'
             );
+            
+            // Delete any existing reminders for this user and light
+            await deleteRemindersForUser(
+              attendee.user_id,
+              lightId
+            );
           }
         } catch (notificationError) {
-          console.error('Error creating cancellation notifications:', notificationError);
+          console.error('Error creating cancellation notifications or deleting reminders:', notificationError);
         }
       }
       
@@ -496,6 +504,24 @@ export default function LightPage() {
                         .eq('id', pendingInvitation.id);
                       
                       if (error) throw error;
+                      
+                      // Create reminders for the user who accepted
+                      if (light) {
+                        console.log('Attempting to create reminders for user:', currentUser.id, 'for light:', lightId);
+                        try {
+                          await createRemindersForUser(
+                            currentUser.id,
+                            lightId,
+                            light.title,
+                            light.start_time
+                          );
+                          console.log('Reminders created successfully for user:', currentUser.id);
+                        } catch (reminderError) {
+                          console.error('Error creating reminders:', reminderError);
+                        }
+                      } else {
+                        console.log('Light data not available for reminder creation');
+                      }
                       
                       // Refresh attendees to update the UI
                       await fetchAttendees();

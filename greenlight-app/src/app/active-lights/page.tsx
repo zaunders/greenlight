@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { createLightAttendingNotification } from "@/lib/notifications";
+import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
   id: string;
@@ -178,6 +179,35 @@ export default function ActiveLightsPage() {
               lightTitle: invitationData.light.title,
               attendeeName: invitationData.user.username
             });
+          }
+        }
+        
+        // Handle reminders for the user who accepted/declined
+        if (invitationData && currentUser) {
+          if (status === 'accepted') {
+            // Create reminders for the user who accepted
+            try {
+              await createRemindersForUser(
+                currentUser.id,
+                invitationData.light_id,
+                invitationData.light.title,
+                invitationData.light.start_time
+              );
+              console.log('Reminders created for user:', currentUser.id);
+            } catch (reminderError) {
+              console.error('Error creating reminders:', reminderError);
+            }
+          } else if (status === 'declined') {
+            // Delete any existing reminders for the user who declined
+            try {
+              await deleteRemindersForUser(
+                currentUser.id,
+                invitationData.light_id
+              );
+              console.log('Reminders deleted for user:', currentUser.id);
+            } catch (reminderError) {
+              console.error('Error deleting reminders:', reminderError);
+            }
           }
         }
       }

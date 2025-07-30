@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import Image from "next/image";
 import { createLightInvitationNotification } from "@/lib/notifications";
+import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
   id: string;
@@ -278,6 +279,49 @@ export default function ManageInvitationsPage() {
         .eq('id', invitationId);
 
       if (error) throw error;
+      
+      // Get invitation details for reminder handling
+      const { data: invitationData, error: invitationError } = await supabase
+        .from('light_invitations')
+        .select(`
+          *,
+          light:lights(
+            id,
+            title,
+            start_time
+          )
+        `)
+        .eq('id', invitationId)
+        .single();
+      
+      if (!invitationError && invitationData && light) {
+        // Handle reminders based on status
+        if (status === 'accepted') {
+          // Create reminders for the user who accepted
+          try {
+            await createRemindersForUser(
+              invitationData.user_id,
+              invitationData.light_id,
+              invitationData.light.title,
+              invitationData.light.start_time
+            );
+            console.log('Reminders created for user:', invitationData.user_id);
+          } catch (reminderError) {
+            console.error('Error creating reminders:', reminderError);
+          }
+        } else if (status === 'declined') {
+          // Delete any existing reminders for the user who declined
+          try {
+            await deleteRemindersForUser(
+              invitationData.user_id,
+              invitationData.light_id
+            );
+            console.log('Reminders deleted for user:', invitationData.user_id);
+          } catch (reminderError) {
+            console.error('Error deleting reminders:', reminderError);
+          }
+        }
+      }
       
       // Refresh attendees
       fetchAttendees();
