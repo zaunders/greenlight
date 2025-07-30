@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
-import { createLightMessageOwnerNotification, createLightMessageAttendingNotification } from "@/lib/notifications";
+import { createLightMessageOwnerNotification, createLightMessageAttendingNotification, createLightCancelledNotification } from "@/lib/notifications";
 
 interface Light {
   id: string;
@@ -139,6 +139,26 @@ export default function LightPage() {
     
     setDeleting(true);
     try {
+      // Notify all accepted attendees before deleting the light
+      if (light) {
+        try {
+          const acceptedAttendees = attendees.filter(attendee => 
+            attendee.status === 'accepted'
+          );
+          
+          for (const attendee of acceptedAttendees) {
+            await createLightCancelledNotification(
+              attendee.user_id,
+              lightId,
+              light.title,
+              currentUser?.user_metadata?.name || currentUser?.email || 'Event organizer'
+            );
+          }
+        } catch (notificationError) {
+          console.error('Error creating cancellation notifications:', notificationError);
+        }
+      }
+      
       const { error } = await supabase
         .from('lights')
         .delete()
@@ -300,15 +320,13 @@ export default function LightPage() {
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
       <div className="w-full max-w-md bg-white rounded-lg shadow overflow-hidden">
         {/* Image */}
-        {light.image_url && (
-          <div className="w-full h-48 bg-green-200">
-            <img 
-              src={light.image_url} 
-              alt={light.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
+        <div className="w-full h-48 bg-green-200">
+          <img 
+            src={light.image_url || '/greenlight.png'} 
+            alt={light.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
         
         {/* Content */}
         <div className="p-6">

@@ -129,6 +129,18 @@ export async function createLightInvitationNotification(
   lightTitle: string, 
   authorName: string
 ) {
+  console.log('Creating light invitation notification for user:', userId, 'light:', lightTitle);
+  
+  // Check if user wants to receive this type of notification
+  const shouldSend = await shouldSendNotification(userId, 'light_invitation');
+  console.log('Should send light_invitation notification:', shouldSend);
+  
+  if (!shouldSend) {
+    console.log('Skipping light_invitation notification for user:', userId, '- preference disabled');
+    return null;
+  }
+
+  console.log('Proceeding to create light_invitation notification');
   return createNotification({
     user_id: userId,
     title: 'New Event Invitation',
@@ -150,6 +162,13 @@ export async function createLightReminderNotification(
   lightTitle: string,
   startTime: string
 ) {
+  // Check if user wants to receive this type of notification
+  const shouldSend = await shouldSendNotification(userId, 'light_reminder');
+  if (!shouldSend) {
+    console.log('Skipping light_reminder notification for user:', userId, '- preference disabled');
+    return null;
+  }
+
   return createNotification({
     user_id: userId,
     title: 'Event Reminder',
@@ -171,6 +190,13 @@ export async function createSystemNotification(
   message: string,
   data?: Record<string, any>
 ) {
+  // Check if user wants to receive this type of notification
+  const shouldSend = await shouldSendNotification(userId, 'system');
+  if (!shouldSend) {
+    console.log('Skipping system notification for user:', userId, '- preference disabled');
+    return null;
+  }
+
   return createNotification({
     user_id: userId,
     title,
@@ -259,17 +285,38 @@ export async function updateNotificationPreferences(
 export async function shouldSendNotification(userId: string, type: string): Promise<boolean> {
   console.log('Checking notification preference for user:', userId, 'type:', type);
   
-  const preferences = await getNotificationPreferences(userId);
-  console.log('User preferences:', preferences);
-  
-  if (!preferences) {
-    console.log('No preferences found, defaulting to true');
-    return true; // Default to true if no preferences set
+  try {
+    const preferences = await getNotificationPreferences(userId);
+    console.log('User preferences:', preferences);
+    
+    if (!preferences) {
+      console.log('No preferences found, creating default preferences with all notifications enabled');
+      // Create default preferences with all notifications enabled
+      const defaultPreferences = await updateNotificationPreferences(userId, {
+        light_invitation: true,
+        light_message_owner: true,
+        light_message_attending: true,
+        light_attending: true,
+        light_reminder: true,
+        light_reminder_advance_hours: 1,
+        light_cancelled: true,
+        system: true
+      });
+      
+      // Check the specific preference for this notification type
+      const shouldSend = defaultPreferences[type as keyof NotificationPreferences] === true;
+      console.log('Should send notification (default):', shouldSend);
+      return shouldSend;
+    }
+    
+    const shouldSend = preferences[type as keyof NotificationPreferences] === true;
+    console.log('Should send notification:', shouldSend);
+    return shouldSend;
+  } catch (error) {
+    console.error('Error checking notification preferences:', error);
+    // If there's an error, default to true to ensure notifications aren't lost
+    return true;
   }
-  
-  const shouldSend = preferences[type as keyof NotificationPreferences] === true;
-  console.log('Should send notification:', shouldSend);
-  return shouldSend;
 }
 
 // Create notification for light message to owner
@@ -339,6 +386,13 @@ export async function createLightAttendingNotification(
   lightTitle: string,
   attendeeName: string
 ) {
+  // Check if user wants to receive this type of notification
+  const shouldSend = await shouldSendNotification(userId, 'light_attending');
+  if (!shouldSend) {
+    console.log('Skipping light_attending notification for user:', userId, '- preference disabled');
+    return null;
+  }
+
   return createNotification({
     user_id: userId,
     title: 'Someone Joined Your Light',
@@ -360,6 +414,13 @@ export async function createLightCancelledNotification(
   lightTitle: string,
   authorName: string
 ) {
+  // Check if user wants to receive this type of notification
+  const shouldSend = await shouldSendNotification(userId, 'light_cancelled');
+  if (!shouldSend) {
+    console.log('Skipping light_cancelled notification for user:', userId, '- preference disabled');
+    return null;
+  }
+
   return createNotification({
     user_id: userId,
     title: 'Light Cancelled',

@@ -47,6 +47,8 @@ export default function CreateLightPage() {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [timeError, setTimeError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -149,6 +151,23 @@ export default function CreateLightPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const setFromNow = () => {
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000); // Add 1 hour
+    
+    // Format dates as YYYY-MM-DD
+    const today = now.toISOString().split('T')[0];
+    
+    // Format times as HH:MM
+    const currentTime = now.toTimeString().slice(0, 5);
+    const oneHourLaterTime = oneHourLater.toTimeString().slice(0, 5);
+    
+    setStartDate(today);
+    setStartTime(currentTime);
+    setEndDate(today);
+    setEndTime(oneHourLaterTime);
   };
 
   const compressImage = async (file: File) => {
@@ -269,14 +288,32 @@ export default function CreateLightPage() {
     e.preventDefault();
     if (!currentUser) return;
     
+    // Client-side validation before making any API calls
+    if (!startDate || !startTime || !endDate || !endTime) {
+      setError('Please fill in all date and time fields');
+      return;
+    }
+
+    // Create proper ISO strings for the database (preserve local timezone)
+    const startDateTime = new Date(`${startDate}T${startTime}:00`);
+    const endDateTime = new Date(`${endDate}T${endTime}:00`);
+    
+    // Validate that end time is after start time
+    if (endDateTime <= startDateTime) {
+      setTimeError('End time must be after start time');
+      return;
+    }
+    
     setSaving(true);
+    setError(null);
+    setTimeError(null);
     try {
       let imageUrl = null;
       
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
       }
-      
+
       const { data: lightData, error } = await supabase
         .from('lights')
         .insert([
@@ -284,8 +321,8 @@ export default function CreateLightPage() {
             title,
             description: description || null,
             location,
-            start_time: startDate && startTime ? new Date(`${startDate}T${startTime}:00`).toISOString() : "",
-            end_time: endDate && endTime ? new Date(`${endDate}T${endTime}:00`).toISOString() : "",
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
             max_limit: maxLimit ? parseInt(maxLimit) : null,
             image_url: imageUrl,
             author_id: currentUser.id,
@@ -305,6 +342,7 @@ export default function CreateLightPage() {
       router.push('/mylights');
     } catch (err: any) {
       console.error('Error creating light:', err);
+      setError(err.message || 'Error creating light. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -318,6 +356,11 @@ export default function CreateLightPage() {
       <h1 className="text-3xl font-bold text-green-800 mb-6">Create Light</h1>
       
       <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
           <div>
@@ -361,6 +404,17 @@ export default function CreateLightPage() {
               required
               className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
+          </div>
+
+          {/* From Now Button */}
+          <div className="mb-2">
+            <button
+              type="button"
+              onClick={setFromNow}
+              className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded border border-green-300 hover:bg-green-200 transition"
+            >
+              from now
+            </button>
           </div>
 
           {/* Start Date and Time */}
@@ -422,6 +476,13 @@ export default function CreateLightPage() {
               />
             </div>
           </div>
+          
+          {/* Time validation error */}
+          {timeError && (
+            <div className="text-red-600 text-sm mt-1">
+              {timeError}
+            </div>
+          )}
 
           {/* Max Limit */}
           <div>

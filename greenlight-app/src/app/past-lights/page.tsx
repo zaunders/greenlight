@@ -133,15 +133,13 @@ export default function PastLightsPage() {
           invitations.map((invitation) => (
             <div key={invitation.id} className="bg-white rounded-lg shadow overflow-hidden opacity-75">
               {/* Image */}
-              {invitation.light.image_url && (
-                <div className="w-full h-32 bg-green-200">
-                  <img 
-                    src={invitation.light.image_url} 
-                    alt={invitation.light.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              <div className="w-full h-32 bg-green-200">
+                <img 
+                  src={invitation.light.image_url || '/greenlight.png'} 
+                  alt={invitation.light.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               
               {/* Content */}
               <div className="p-4">

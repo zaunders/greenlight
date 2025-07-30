@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -119,21 +119,11 @@ export default function MyLightsPage() {
                     }`}>
                       <div className="flex gap-3">
                         <div className="w-16 h-16 flex-shrink-0">
-                          {light.image_url ? (
-                            <img 
-                              src={light.image_url} 
-                              alt={light.title}
-                              className="w-full h-full object-cover rounded"
-                            />
-                          ) : (
-                            <div className={`w-full h-full rounded flex items-center justify-center ${
-                              isPast ? 'bg-gray-200' : 'bg-green-200'
-                            }`}>
-                              <span className={`text-xs ${
-                                isPast ? 'text-gray-600' : 'text-green-600'
-                              }`}>No image</span>
-                            </div>
-                          )}
+                          <img 
+                            src={light.image_url || '/greenlight.png'} 
+                            alt={light.title}
+                            className="w-full h-full object-cover rounded"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className={`font-semibold mb-1 truncate ${

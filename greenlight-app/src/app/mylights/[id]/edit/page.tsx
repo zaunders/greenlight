@@ -37,6 +37,8 @@ export default function EditLightPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [timeError, setTimeError] = useState<string | null>(null);
   const router = useRouter();
   const params = useParams();
   const lightId = params.id as string;
@@ -149,8 +151,27 @@ export default function EditLightPage() {
     e.preventDefault();
     if (!currentUser || !light) return;
     
+    // Client-side validation before making any API calls
+    if (!startDate || !startTime || !endDate || !endTime) {
+      setError('Please fill in all date and time fields');
+      return;
+    }
+
+    // Create proper ISO strings for the database (preserve local timezone)
+    const startDateTime = new Date(`${startDate}T${startTime}:00`);
+    const endDateTime = new Date(`${endDate}T${endTime}:00`);
+    
+    // Validate that end time is after start time
+    if (endDateTime <= startDateTime) {
+      setTimeError('End time must be after start time');
+      return;
+    }
+    
     setSaving(true);
+    setError(null);
+    setTimeError(null);
     try {
+
       let imageUrl = light.image_url;
       
       if (imageFile) {
@@ -163,8 +184,8 @@ export default function EditLightPage() {
           title,
           description: description || null,
           location,
-          start_time: startDate && startTime ? new Date(`${startDate}T${startTime}:00`).toISOString() : "",
-          end_time: endDate && endTime ? new Date(`${endDate}T${endTime}:00`).toISOString() : "",
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
           max_limit: maxLimit ? parseInt(maxLimit) : null,
           image_url: imageUrl,
         })
@@ -175,6 +196,7 @@ export default function EditLightPage() {
       router.push(`/mylights/${lightId}`);
     } catch (err: any) {
       console.error('Error updating light:', err);
+      setError(err.message || 'Error updating light. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -204,6 +226,11 @@ export default function EditLightPage() {
 
         {/* Form */}
         <div className="p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Title */}
             <div>
@@ -308,6 +335,13 @@ export default function EditLightPage() {
                 />
               </div>
             </div>
+            
+            {/* Time validation error */}
+            {timeError && (
+              <div className="text-red-600 text-sm mt-1">
+                {timeError}
+              </div>
+            )}
 
             {/* Max Limit */}
             <div>
