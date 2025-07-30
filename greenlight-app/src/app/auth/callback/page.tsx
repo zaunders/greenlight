@@ -17,30 +17,56 @@ export default function AuthCallbackPage() {
         const hash = window.location.hash;
         
         if (hash) {
-          // Handle the auth callback
-          const { data, error } = await supabase.auth.getSession();
+          // Parse the hash fragment to extract tokens
+          const params = new URLSearchParams(hash.substring(1));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
           
-          if (error) {
-            setError(error.message);
-            setLoading(false);
-            return;
-          }
-
-          if (data.session) {
-            // Check if this is a password reset flow
-            const urlParams = new URLSearchParams(window.location.search);
-            const next = urlParams.get('next');
+          if (accessToken && refreshToken) {
+            // Set the session manually
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
             
-            if (next === 'reset-password') {
-              // Redirect to password reset page
-              router.push('/auth/reset-password');
+            if (error) {
+              console.error('Session error:', error);
+              setError(error.message);
+              setLoading(false);
+              return;
+            }
+
+            if (data.session) {
+              // Check if this is a password reset flow
+              const urlParams = new URLSearchParams(window.location.search);
+              const next = urlParams.get('next');
+              
+              if (next === 'reset-password') {
+                // Redirect to password reset page
+                router.push('/auth/reset-password');
+              } else {
+                // User is authenticated, redirect to the main app
+                router.push('/mylights');
+              }
             } else {
-              // User is authenticated, redirect to the main app
-              router.push('/mylights');
+              // No session found, redirect to landing page
+              router.push('/');
             }
           } else {
-            // No session found, redirect to landing page
-            router.push('/');
+            // No tokens in hash, try to get session normally
+            const { data, error } = await supabase.auth.getSession();
+            
+            if (error) {
+              setError(error.message);
+              setLoading(false);
+              return;
+            }
+
+            if (data.session) {
+              router.push('/mylights');
+            } else {
+              router.push('/');
+            }
           }
         } else {
           // No hash fragment, redirect to landing page

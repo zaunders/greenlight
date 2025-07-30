@@ -114,6 +114,8 @@ export default function UserMenu() {
     setUser(null);
     setOpen(false);
     setShowNotifications(false);
+    // Redirect to landing page
+    window.location.href = '/';
   };
 
   const handleNotificationUpdate = () => {

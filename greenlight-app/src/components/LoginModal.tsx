@@ -46,7 +46,12 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           onClose(); // Close modal on successful login
         }
       } else {
-        const { error } = await supabase.auth.signInWithOtp({ email });
+        const { error } = await supabase.auth.signInWithOtp({ 
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
         setLoading(false);
         if (error) {
           setError(error.message);
