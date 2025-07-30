@@ -42,6 +42,7 @@ export default function ActiveLightsPage() {
   const [invitations, setInvitations] = useState<LightInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [showDeclined, setShowDeclined] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -258,18 +259,53 @@ export default function ActiveLightsPage() {
   if (loading) return <div className="min-h-screen bg-green-50 flex items-center justify-center">Loading...</div>;
   if (!currentUser) return null;
 
+  // Filter invitations based on showDeclined state
+  const filteredInvitations = invitations.filter(invitation => {
+    if (showDeclined) {
+      return true; // Show all invitations when showDeclined is true
+    } else {
+      return invitation.status !== 'declined'; // Hide declined invitations by default
+    }
+  });
+
+  // Count declined invitations
+  const declinedCount = invitations.filter(invitation => invitation.status === 'declined').length;
+
   return (
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
       <h1 className="text-3xl font-bold text-green-800 mb-6">Active Lights</h1>
       
+      {/* Show Declined Toggle */}
+      {declinedCount > 0 && (
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={() => setShowDeclined(!showDeclined)}
+            className={`px-3 py-1 text-sm rounded-md font-medium transition ${
+              showDeclined 
+                ? 'bg-gray-600 text-white hover:bg-gray-700' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {showDeclined ? 'Hide Declined' : `Show Declined (${declinedCount})`}
+          </button>
+        </div>
+      )}
+      
       <div className="w-full max-w-md space-y-4">
-        {invitations.length === 0 ? (
+        {filteredInvitations.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-green-900 mb-2">No invitations yet</p>
-            <p className="text-sm text-green-700">You&apos;ll see lights you&apos;ve been invited to here</p>
+            <p className="text-green-900 mb-2">
+              {showDeclined ? 'No invitations found' : 'No active invitations'}
+            </p>
+            <p className="text-sm text-green-700">
+              {showDeclined 
+                ? 'You have no invitations (including declined ones)' 
+                : 'You\'ll see lights you\'ve been invited to here'
+              }
+            </p>
           </div>
         ) : (
-          invitations.map((invitation) => (
+          filteredInvitations.map((invitation) => (
             <Link
               key={invitation.id}
               href={`/mylights/${invitation.light.id}`}

@@ -22,6 +22,11 @@ interface Light {
   end_time: string;
   created_at: string;
   updated_at: string;
+  author?: {
+    id: string;
+    username: string;
+    avatar_url: string | null;
+  };
 }
 
 interface Attendee {
@@ -84,7 +89,10 @@ export default function LightPage() {
     try {
       const { data, error } = await supabase
         .from('lights')
-        .select('*')
+        .select(`
+          *,
+          author:users!lights_author_id_fkey(id, username, avatar_url)
+        `)
         .eq('id', lightId)
         .single();
       
@@ -340,6 +348,24 @@ export default function LightPage() {
         <div className="p-6">
           <h1 className="text-2xl font-bold text-green-900 mb-4">{light.title}</h1>
           
+          {/* Owner Information */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-full bg-green-200 flex items-center justify-center">
+              {light.author?.avatar_url ? (
+                <img 
+                  src={light.author.avatar_url} 
+                  alt={light.author.username} 
+                  className="w-full h-full rounded-full object-cover" 
+                />
+              ) : (
+                <span className="text-green-600 text-xs font-medium">
+                  {light.author?.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <span className="text-sm text-green-700">by {light.author?.username || 'Unknown'}</span>
+          </div>
+          
           {light.description && (
             <p className="text-green-800 mb-4">{light.description}</p>
           )}
@@ -533,6 +559,57 @@ export default function LightPage() {
                 className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
               >
                 Join
+              </button>
+            </div>
+          )}
+          
+          {/* "Actually, I'll join" Button for Declined Invitations */}
+          {currentUser && !isOwner && attendees.some(attendee => 
+            attendee.user_id === currentUser.id && attendee.status === 'declined'
+          ) && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={async () => {
+                  const declinedInvitation = attendees.find(attendee => 
+                    attendee.user_id === currentUser.id && attendee.status === 'declined'
+                  );
+                  if (declinedInvitation) {
+                    try {
+                      const { error } = await supabase
+                        .from('light_invitations')
+                        .update({ status: 'accepted' })
+                        .eq('id', declinedInvitation.id);
+                      
+                      if (error) throw error;
+                      
+                      // Create reminders for the user who accepted
+                      if (light) {
+                        console.log('Attempting to create reminders for user:', currentUser.id, 'for light:', lightId);
+                        try {
+                          await createRemindersForUser(
+                            currentUser.id,
+                            lightId,
+                            light.title,
+                            light.start_time
+                          );
+                          console.log('Reminders created successfully for user:', currentUser.id);
+                        } catch (reminderError) {
+                          console.error('Error creating reminders:', reminderError);
+                        }
+                      } else {
+                        console.log('Light data not available for reminder creation');
+                      }
+                      
+                      // Refresh attendees to update the UI
+                      await fetchAttendees();
+                    } catch (err: any) {
+                      console.error('Error accepting declined invitation:', err);
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium shadow hover:bg-green-700 transition"
+              >
+                Actually, I'll join
               </button>
             </div>
           )}
