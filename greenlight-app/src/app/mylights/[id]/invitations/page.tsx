@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import Image from "next/image";
-import { createLightInvitationNotification } from "@/lib/notifications";
+import { createLightInvitationNotification, createLightAttendingNotification } from "@/lib/notifications";
 import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
@@ -289,6 +289,11 @@ export default function ManageInvitationsPage() {
             id,
             title,
             start_time
+          ),
+          user:users!light_invitations_user_id_fkey(
+            id,
+            username,
+            email
           )
         `)
         .eq('id', invitationId)
@@ -308,6 +313,21 @@ export default function ManageInvitationsPage() {
             console.log('Reminders created for user:', invitationData.user_id);
           } catch (reminderError) {
             console.error('Error creating reminders:', reminderError);
+          }
+          
+          // Notify the light owner that someone joined
+          if (light && light.author_id !== invitationData.user_id) {
+            try {
+              await createLightAttendingNotification(
+                light.author_id,
+                invitationData.light_id,
+                invitationData.light.title,
+                invitationData.user?.username || invitationData.user?.email || 'Someone'
+              );
+              console.log('Owner notification created for light:', invitationData.light_id);
+            } catch (notificationError) {
+              console.error('Error creating owner notification:', notificationError);
+            }
           }
         } else if (status === 'declined') {
           // Delete any existing reminders for the user who declined

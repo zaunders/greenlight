@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
-import { createLightCancelledNotification, createLightMessageOwnerNotification, createLightMessageAttendingNotification } from "@/lib/notifications";
+import { createLightCancelledNotification, createLightMessageOwnerNotification, createLightMessageAttendingNotification, createLightAttendingNotification } from "@/lib/notifications";
 import { createRemindersForUser, deleteRemindersForUser } from "@/lib/reminders";
 
 interface Light {
@@ -549,6 +549,21 @@ export default function LightPage() {
                         console.log('Light data not available for reminder creation');
                       }
                       
+                      // Notify the light owner that someone joined
+                      if (light && light.author_id !== currentUser.id) {
+                        try {
+                          await createLightAttendingNotification(
+                            light.author_id,
+                            lightId,
+                            light.title,
+                            currentUser.user_metadata?.name || currentUser.email || 'Someone'
+                          );
+                          console.log('Owner notification created for light:', lightId);
+                        } catch (notificationError) {
+                          console.error('Error creating owner notification:', notificationError);
+                        }
+                      }
+                      
                       // Refresh attendees to update the UI
                       await fetchAttendees();
                     } catch (err: any) {
@@ -598,6 +613,21 @@ export default function LightPage() {
                         }
                       } else {
                         console.log('Light data not available for reminder creation');
+                      }
+                      
+                      // Notify the light owner that someone joined
+                      if (light && light.author_id !== currentUser.id) {
+                        try {
+                          await createLightAttendingNotification(
+                            light.author_id,
+                            lightId,
+                            light.title,
+                            currentUser.user_metadata?.name || currentUser.email || 'Someone'
+                          );
+                          console.log('Owner notification created for light:', lightId);
+                        } catch (notificationError) {
+                          console.error('Error creating owner notification:', notificationError);
+                        }
                       }
                       
                       // Refresh attendees to update the UI
