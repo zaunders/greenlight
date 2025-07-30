@@ -91,6 +91,26 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
     }
   };
 
+  const handleClearReadNotifications = async () => {
+    try {
+      // Get all read notification IDs
+      const readNotificationIds = notifications
+        .filter(n => n.read)
+        .map(n => n.id);
+      
+      // Delete all read notifications
+      for (const notificationId of readNotificationIds) {
+        await deleteNotification(notificationId);
+      }
+      
+      // Update local state to remove read notifications
+      setNotifications(prev => prev.filter(n => !n.read));
+      onNotificationUpdate?.();
+    } catch (error) {
+      console.error('Error clearing read notifications:', error);
+    }
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -165,6 +185,15 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
             >
               {showReadNotifications ? "Hide Read" : "Show Read"}
             </button>
+            {showReadNotifications && notifications.some(n => n.read) && (
+              <button
+                onClick={handleClearReadNotifications}
+                className="text-sm text-red-600 hover:text-red-800"
+                title="Clear all read notifications"
+              >
+                Clear
+              </button>
+            )}
             <button
               onClick={() => setShowPreferences(true)}
               className="text-sm text-gray-600 hover:text-gray-800"

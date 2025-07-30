@@ -26,6 +26,7 @@ export default function AddFriendsPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingFriend, setAddingFriend] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +70,13 @@ export default function AddFriendsPage() {
     return friends.some(friend => friend.friend_id === userId);
   };
 
+  // Filter users to exclude friends and apply search
+  const filteredUsers = allUsers.filter(user => {
+    const isAlreadyFriend = isFriend(user.id);
+    const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase());
+    return !isAlreadyFriend && matchesSearch;
+  });
+
   const addFriend = async (friendId: string) => {
     if (!currentUser) return;
     
@@ -102,46 +110,52 @@ export default function AddFriendsPage() {
       <h1 className="text-3xl font-bold text-green-800 mb-6">Add Friends</h1>
       
       <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
-        {allUsers.length === 0 ? (
-          <div className="text-center text-green-900">No users found.</div>
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+
+        {filteredUsers.length === 0 ? (
+          <div className="text-center text-green-900 py-8">
+            {searchQuery ? "No users found matching your search." : "No users available to add as friends."}
+          </div>
         ) : (
           <div className="space-y-3">
-            {allUsers.map((user) => {
-              const isAlreadyFriend = isFriend(user.id);
-              return (
-                <div key={user.id} className="flex items-center justify-between border rounded-lg p-3 bg-green-50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt={user.username} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <span className="text-green-600 text-sm">{user.username.charAt(0).toUpperCase()}</span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-green-900">{user.username}</h3>
-                    </div>
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between border rounded-lg p-3 bg-green-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.username} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className="text-green-600 text-sm">{user.username.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
-                  
-                  {isAlreadyFriend ? (
-                    <span className="text-green-600 text-sm">✓ Friend</span>
-                  ) : (
-                    <button
-                      onClick={() => addFriend(user.id)}
-                      disabled={addingFriend === user.id}
-                      className="p-2 hover:bg-green-200 rounded-full transition disabled:opacity-50"
-                    >
-                      <Image 
-                        src="/plus.png" 
-                        alt="Add friend" 
-                        width={20} 
-                        height={20}
-                      />
-                    </button>
-                  )}
+                  <div>
+                    <h3 className="font-semibold text-green-900">{user.username}</h3>
+                  </div>
                 </div>
-              );
-            })}
+                
+                <button
+                  onClick={() => addFriend(user.id)}
+                  disabled={addingFriend === user.id}
+                  className="p-2 hover:bg-green-200 rounded-full transition disabled:opacity-50"
+                >
+                  <Image 
+                    src="/plus.png" 
+                    alt="Add friend" 
+                    width={20} 
+                    height={20}
+                  />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

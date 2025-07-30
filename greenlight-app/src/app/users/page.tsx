@@ -168,6 +168,31 @@ export default function UsersPage() {
                   <div className="flex-1">
                     <h3 className="font-semibold text-green-900">{friend.friend.username}</h3>
                   </div>
+                  <button
+                    onClick={async () => {
+                      if (confirm(`Remove ${friend.friend.username} from your friends?`)) {
+                        try {
+                          const { error } = await supabase
+                            .from('friends')
+                            .delete()
+                            .eq('id', friend.id);
+                          
+                          if (error) throw error;
+                          
+                          // Refresh friends list
+                          await fetchData(currentUser.id);
+                        } catch (err: any) {
+                          console.error('Error removing friend:', err);
+                        }
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-700 p-1 transition"
+                    title="Remove friend"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               ))
             )}

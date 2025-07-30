@@ -97,9 +97,10 @@ export default function UserMenu() {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpen(false);
+        setShowNotifications(false);
       }
     }
-    if (open) {
+    if (open || showNotifications) {
       document.addEventListener("mousedown", handleClickOutside);
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -107,7 +108,7 @@ export default function UserMenu() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open]);
+  }, [open, showNotifications]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
