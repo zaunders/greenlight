@@ -123,6 +123,25 @@ export default function UsersPage() {
         </button>
       </div>
 
+      {/* Action Buttons - positioned right below the toggle */}
+      <div className="mb-6">
+        {peopleMode === 'lists' ? (
+          <Link
+            href="/users/create-list"
+            className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
+          >
+            + Create List
+          </Link>
+        ) : (
+          <Link
+            href="/users/add"
+            className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
+          >
+            + Add Friends
+          </Link>
+        )}
+      </div>
+
       {/* Content */}
       <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
         {peopleMode === 'lists' ? (
@@ -197,25 +216,6 @@ export default function UsersPage() {
               ))
             )}
           </div>
-        )}
-      </div>
-
-      {/* Action Button */}
-      <div className="mt-6">
-        {peopleMode === 'lists' ? (
-          <Link
-            href="/users/create-list"
-            className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
-          >
-            + Create List
-          </Link>
-        ) : (
-          <Link
-            href="/users/add"
-            className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold shadow hover:bg-green-700 transition"
-          >
-            + Add Friends
-          </Link>
         )}
       </div>
     </div>

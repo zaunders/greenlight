@@ -182,6 +182,9 @@ export default function EditListPage() {
       
       if (error) throw error;
       setList(prev => prev ? { ...prev, name: listName.trim() } : null);
+      
+      // Navigate back to the users page after saving
+      router.push('/users');
     } catch (err: any) {
       console.error('Error updating list name:', err);
     } finally {
