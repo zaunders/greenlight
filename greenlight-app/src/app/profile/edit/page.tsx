@@ -20,6 +20,7 @@ export default function EditProfilePage() {
   const [selectedFileName, setSelectedFileName] = useState<string>("");
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFirstTime, setIsFirstTime] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -32,6 +33,14 @@ export default function EditProfilePage() {
         setName(googleName || "");
         setAvatarUrl(googleAvatar || "");
         setEmail(user.email || "");
+        
+        // Check if this is a first-time user (no name set or using default email)
+        const hasName = googleName || user.user_metadata?.name;
+        const hasAvatar = googleAvatar || user.user_metadata?.avatar_url;
+        
+        if (!hasName && !hasAvatar) {
+          setIsFirstTime(true);
+        }
       }
       setLoading(false);
     });
@@ -153,6 +162,16 @@ export default function EditProfilePage() {
     <div className="min-h-screen flex flex-col items-center py-8 px-2 bg-green-50">
       <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
         <h1 className="text-2xl font-bold text-green-800 mb-4">Edit Profile</h1>
+        
+        {isFirstTime && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-green-800 mb-2">Welcome to Greenlight!</h2>
+            <p className="text-green-700 text-sm leading-relaxed">
+              Please update your profile so people can find you. You can also edit this information later in the top right menu.
+            </p>
+          </div>
+        )}
+        
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <div className="flex flex-col items-center gap-2 mb-2">
             {preview || avatarUrl ? (

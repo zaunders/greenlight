@@ -81,6 +81,19 @@ export default function CreateListPage() {
     );
   };
 
+  const selectAllFriends = () => {
+    const allFriendIds = filteredFriends.map(friend => friend.friend.id);
+    const allSelected = allFriendIds.every(id => selectedFriends.includes(id));
+    
+    if (allSelected) {
+      // Deselect all filtered friends
+      setSelectedFriends(prev => prev.filter(id => !allFriendIds.includes(id)));
+    } else {
+      // Select all filtered friends (merge with existing selections)
+      setSelectedFriends(prev => [...new Set([...prev, ...allFriendIds])]);
+    }
+  };
+
   const createList = async () => {
     if (!currentUser || !listName.trim()) return;
     
@@ -163,9 +176,19 @@ export default function CreateListPage() {
 
           {/* Friends List */}
           <div>
-            <h3 className="text-sm font-medium text-green-900 mb-3">
-              Select Friends ({selectedFriends.length} selected)
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-green-900">
+                Select Friends ({selectedFriends.length} selected)
+              </h3>
+              {filteredFriends.length > 0 && (
+                <button
+                  onClick={selectAllFriends}
+                  className="text-sm text-green-600 hover:text-green-800 font-medium"
+                >
+                  {filteredFriends.every(friend => selectedFriends.includes(friend.friend.id)) ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {filteredFriends.length === 0 ? (
                 <div className="text-center text-green-900 py-4">

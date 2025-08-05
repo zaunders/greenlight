@@ -42,14 +42,6 @@ interface Attendee {
   };
 }
 
-interface List {
-  id: string;
-  name: string;
-  user_id: string;
-  created_at: string;
-  member_count: number;
-}
-
 interface Friend {
   id: string;
   user_id: string;
@@ -68,10 +60,7 @@ export default function ManageInvitationsPage() {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [inviteMode, setInviteMode] = useState<'lists' | 'friends'>('lists');
-  const [lists, setLists] = useState<List[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const router = useRouter();
   const params = useParams();
@@ -131,33 +120,6 @@ export default function ManageInvitationsPage() {
 
   const fetchInviteData = async (userId: string) => {
     try {
-      // Fetch lists
-      const { data: listsData, error: listsError } = await supabase
-        .from('lists')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (listsError) throw listsError;
-      
-      // Fetch member counts for each list
-      const listsWithCounts = await Promise.all(
-        listsData?.map(async (list) => {
-          const { count, error: countError } = await supabase
-            .from('list_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('list_id', list.id);
-          
-          if (countError) {
-            console.error('Error fetching member count for list:', list.id, countError);
-            return { ...list, member_count: 0 };
-          }
-          
-          return { ...list, member_count: count || 0 };
-        }) || []
-      );
-      
-      setLists(listsWithCounts);
-
       // Fetch friends
       const { data: friendsData, error: friendsError } = await supabase
         .from('friends')
@@ -168,18 +130,24 @@ export default function ManageInvitationsPage() {
         .eq('user_id', userId);
       
       if (friendsError) throw friendsError;
-      setFriends(friendsData || []);
+
+      // Get existing invitations for this light to filter out already invited friends
+      const { data: existingInvitations, error: invitationsError } = await supabase
+        .from('light_invitations')
+        .select('user_id')
+        .eq('light_id', lightId);
+      
+      if (invitationsError) throw invitationsError;
+      
+      const invitedUserIds = new Set(existingInvitations?.map(inv => inv.user_id) || []);
+      
+      // Filter out friends who have already been invited
+      const availableFriends = friendsData?.filter(friend => !invitedUserIds.has(friend.friend.id)) || [];
+      
+      setFriends(availableFriends);
     } catch (err: any) {
       console.error('Error fetching invite data:', err);
     }
-  };
-
-  const toggleListSelection = (listId: string) => {
-    setSelectedLists(prev => 
-      prev.includes(listId) 
-        ? prev.filter(id => id !== listId)
-        : [...prev, listId]
-    );
   };
 
   const toggleFriendSelection = (friendId: string) => {
@@ -190,28 +158,26 @@ export default function ManageInvitationsPage() {
     );
   };
 
+  const selectAllFriends = () => {
+    const allFriendIds = friends.map(friend => friend.friend.id);
+    const allSelected = allFriendIds.every(id => selectedFriends.includes(id));
+    
+    if (allSelected) {
+      // Deselect all friends
+      setSelectedFriends([]);
+    } else {
+      // Select all friends
+      setSelectedFriends(allFriendIds);
+    }
+  };
+
   const saveInvitations = async () => {
     if (!currentUser || !light) return;
     
     setSaving(true);
     try {
-      // Get all users to invite
-      const usersToInvite: string[] = [];
-
-      // Add users from selected lists
-      for (const listId of selectedLists) {
-        const { data: listMembers, error: membersError } = await supabase
-          .from('list_members')
-          .select('user_id')
-          .eq('list_id', listId);
-        
-        if (!membersError && listMembers) {
-          usersToInvite.push(...listMembers.map(member => member.user_id));
-        }
-      }
-
-      // Add directly selected friends
-      usersToInvite.push(...selectedFriends);
+      // Get all users to invite (only selected friends)
+      const usersToInvite = [...selectedFriends];
 
       // Remove duplicates
       const uniqueUserIds = [...new Set(usersToInvite)];
@@ -262,7 +228,6 @@ export default function ManageInvitationsPage() {
 
       // Refresh attendees and clear selections
       await fetchAttendees();
-      setSelectedLists([]);
       setSelectedFriends([]);
     } catch (err: any) {
       console.error('Error saving invitations:', err);
@@ -457,92 +422,48 @@ export default function ManageInvitationsPage() {
         <div className="p-6 border-b border-green-200">
           <h3 className="font-semibold text-green-900 mb-4">Add New Invitations</h3>
           
-          {/* Invite Mode Toggle */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-green-900 mb-2">
-              Invite
-            </label>
-            <div className="flex bg-green-200 rounded-full p-1">
-              <button
-                type="button"
-                onClick={() => setInviteMode('lists')}
-                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
-                  inviteMode === 'lists'
-                    ? 'bg-white text-green-800 shadow'
-                    : 'text-green-700 hover:text-green-800'
-                }`}
-              >
-                Lists
-              </button>
-              <button
-                type="button"
-                onClick={() => setInviteMode('friends')}
-                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
-                  inviteMode === 'friends'
-                    ? 'bg-white text-green-800 shadow'
-                    : 'text-green-700 hover:text-green-800'
-                }`}
-              >
-                Friends
-              </button>
-            </div>
-          </div>
-
           {/* Invite Options */}
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-green-900 mb-3">
-              {inviteMode === 'lists' ? 'Select Lists' : 'Select Friends'} ({inviteMode === 'lists' ? selectedLists.length : selectedFriends.length} selected)
-            </h4>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {inviteMode === 'lists' ? (
-                lists.length === 0 ? (
-                  <div className="text-center text-green-900 py-4">
-                    No lists found. Create a list first!
-                  </div>
-                ) : (
-                  lists.map((list) => (
-                    <div key={list.id} className="flex items-center gap-3 p-3 border rounded-lg bg-green-50">
-                      <input
-                        type="checkbox"
-                        id={list.id}
-                        checked={selectedLists.includes(list.id)}
-                        onChange={() => toggleListSelection(list.id)}
-                        className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
-                      />
-                      <label htmlFor={list.id} className="flex-1 font-medium text-green-900 cursor-pointer">
-                        {list.name} ({list.member_count} members)
-                      </label>
-                    </div>
-                  ))
-                )
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-green-900">
+                Select Friends ({selectedFriends.length} selected)
+              </h4>
+              {friends.length > 0 && (
+                <button
+                  onClick={selectAllFriends}
+                  className="text-sm text-green-600 hover:text-green-800 font-medium"
+                >
+                  {friends.every(friend => selectedFriends.includes(friend.friend.id)) ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {friends.length === 0 ? (
+                <div className="text-center text-green-900 py-4">
+                  No friends found. Add friends first!
+                </div>
               ) : (
-                friends.length === 0 ? (
-                  <div className="text-center text-green-900 py-4">
-                    No friends found. Add friends first!
-                  </div>
-                ) : (
-                  friends.map((friend) => (
-                    <div key={friend.friend.id} className="flex items-center gap-3 p-3 border rounded-lg bg-green-50">
-                      <input
-                        type="checkbox"
-                        id={friend.friend.id}
-                        checked={selectedFriends.includes(friend.friend.id)}
-                        onChange={() => toggleFriendSelection(friend.friend.id)}
-                        className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
-                      />
-                      <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center">
-                        {friend.friend.avatar_url ? (
-                          <img src={friend.friend.avatar_url} alt={friend.friend.username} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <span className="text-green-600 text-sm">{friend.friend.username.charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
-                      <label htmlFor={friend.friend.id} className="flex-1 font-medium text-green-900 cursor-pointer">
-                        {friend.friend.username}
-                      </label>
+                friends.map((friend) => (
+                  <div key={friend.friend.id} className="flex items-center gap-3 p-3 border rounded-lg bg-green-50">
+                    <input
+                      type="checkbox"
+                      id={friend.friend.id}
+                      checked={selectedFriends.includes(friend.friend.id)}
+                      onChange={() => toggleFriendSelection(friend.friend.id)}
+                      className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
+                    />
+                    <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center">
+                      {friend.friend.avatar_url ? (
+                        <img src={friend.friend.avatar_url} alt={friend.friend.username} className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <span className="text-green-600 text-sm">{friend.friend.username.charAt(0).toUpperCase()}</span>
+                      )}
                     </div>
-                  ))
-                )
+                    <label htmlFor={friend.friend.id} className="flex-1 font-medium text-green-900 cursor-pointer">
+                      {friend.friend.username}
+                    </label>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -550,7 +471,7 @@ export default function ManageInvitationsPage() {
           {/* Add Invitations Button */}
           <button
             onClick={saveInvitations}
-            disabled={saving || (selectedLists.length === 0 && selectedFriends.length === 0)}
+            disabled={saving || selectedFriends.length === 0}
             className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700 transition disabled:opacity-50"
           >
             {saving ? 'Adding...' : 'Add Invitations'}

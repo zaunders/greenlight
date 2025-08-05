@@ -225,7 +225,7 @@ export default function EditLightPage() {
 
   return (
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
-      <div className="w-full max-w-md bg-white rounded-lg shadow overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-lg shadow overflow-hidden mb-24">
         {/* Header */}
         <div className="p-6 border-b border-green-200">
           <div className="flex items-center justify-between mb-4">
@@ -250,157 +250,167 @@ export default function EditLightPage() {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Title */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-green-900 mb-2">
-                Title
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-green-900 mb-2">
-                Description (optional)
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-green-900 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Start Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Event Details Section */}
+            <div className="space-y-6 p-4 bg-green-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-900 mb-4">Event Details</h3>
+              
+              {/* Title */}
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
-                  Start date
+                <label htmlFor="title" className="block text-sm font-medium text-green-900 mb-2">
+                  Name
                 </label>
                 <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-              <div>
-                <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
-                  Start time
-                </label>
-                <input
-                  type="time"
-                  id="startTime"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-            </div>
 
-            {/* End Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Image Upload */}
               <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
-                  End date
+                <label htmlFor="image" className="block text-sm font-medium text-green-900 mb-2">
+                  Image
                 </label>
                 <input
-                  type="date"
-                  id="endDate"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  type="file"
+                  id="image"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="image"
+                  className="block w-full px-3 py-2 bg-white border border-green-300 rounded-lg cursor-pointer text-center text-green-600 hover:bg-gray-50 transition"
+                >
+                  Choose File
+                </label>
+                {imagePreview && (
+                  <div className="mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-green-900 mb-2">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
+
+              {/* Location */}
               <div>
-                <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
-                  End time
+                <label htmlFor="location" className="block text-sm font-medium text-green-900 mb-2">
+                  Location
                 </label>
                 <input
-                  type="time"
-                  id="endTime"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  type="text"
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Max Participants */}
+              <div>
+                <label htmlFor="maxLimit" className="block text-sm font-medium text-green-900 mb-2">
+                  Max participants (optional)
+                </label>
+                <input
+                  type="number"
+                  id="maxLimit"
+                  value={maxLimit}
+                  onChange={(e) => setMaxLimit(e.target.value)}
+                  min="1"
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
             </div>
-            
-            {/* Time validation error */}
-            {timeError && (
-              <div className="text-red-600 text-sm mt-1">
-                {timeError}
-              </div>
-            )}
 
-            {/* Max Limit */}
-            <div>
-              <label htmlFor="maxLimit" className="block text-sm font-medium text-green-900 mb-2">
-                Max limit (optional)
-              </label>
-              <input
-                type="number"
-                id="maxLimit"
-                value={maxLimit}
-                onChange={(e) => setMaxLimit(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Image Upload */}
-            <div>
-              <label htmlFor="image" className="block text-sm font-medium text-green-900 mb-2">
-                Image
-              </label>
-              <input
-                type="file"
-                id="image"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="image"
-                className="block w-full px-3 py-2 border border-green-300 rounded-lg cursor-pointer text-center text-green-600 hover:bg-green-50 transition"
-              >
-                Choose File
-              </label>
-              {imagePreview && (
-                <div className="mt-2">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-32 object-cover rounded-lg"
+            {/* Date & Time Section */}
+            <div className="space-y-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-900 mb-4">Date & Time</h3>
+              
+              {/* Start Date and Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
+                    Start date
+                  </label>
+                  <input
+                    type="date"
+                    id="startDate"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
+                </div>
+                <div>
+                  <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
+                    Start time
+                  </label>
+                  <input
+                    type="time"
+                    id="startTime"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* End Date and Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
+                    End date
+                  </label>
+                  <input
+                    type="date"
+                    id="endDate"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
+                    End time
+                  </label>
+                  <input
+                    type="time"
+                    id="endTime"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              {/* Time validation error */}
+              {timeError && (
+                <div className="text-red-600 text-sm mt-1">
+                  {timeError}
                 </div>
               )}
             </div>

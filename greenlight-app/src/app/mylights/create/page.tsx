@@ -9,14 +9,6 @@ import imageCompression from "browser-image-compression";
 import { createLightInvitationNotification } from "@/lib/notifications";
 import { createRemindersForUser } from "@/lib/reminders";
 
-interface List {
-  id: string;
-  name: string;
-  user_id: string;
-  created_at: string;
-  member_count: number;
-}
-
 interface Friend {
   id: string;
   user_id: string;
@@ -41,16 +33,31 @@ export default function CreateLightPage() {
   const [maxLimit, setMaxLimit] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [inviteMode, setInviteMode] = useState<'lists' | 'friends'>('lists');
-  const [lists, setLists] = useState<List[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeError, setTimeError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Initialize with current time
+  useEffect(() => {
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000); // Add 1 hour
+    
+    // Format dates as YYYY-MM-DD
+    const today = now.toISOString().split('T')[0];
+    
+    // Format times as HH:MM
+    const currentTime = now.toTimeString().slice(0, 5);
+    const oneHourLaterTime = oneHourLater.toTimeString().slice(0, 5);
+    
+    setStartDate(today);
+    setStartTime(currentTime);
+    setEndDate(today);
+    setEndTime(oneHourLaterTime);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -81,33 +88,6 @@ export default function CreateLightPage() {
 
   const fetchInviteData = async (userId: string) => {
     try {
-      // Fetch lists
-      const { data: listsData, error: listsError } = await supabase
-        .from('lists')
-        .select('*')
-        .eq('user_id', userId);
-      
-      if (listsError) throw listsError;
-      
-      // Fetch member counts for each list
-      const listsWithCounts = await Promise.all(
-        listsData?.map(async (list) => {
-          const { count, error: countError } = await supabase
-            .from('list_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('list_id', list.id);
-          
-          if (countError) {
-            console.error('Error fetching member count for list:', list.id, countError);
-            return { ...list, member_count: 0 };
-          }
-          
-          return { ...list, member_count: count || 0 };
-        }) || []
-      );
-      
-      setLists(listsWithCounts);
-
       // Fetch friends
       const { data: friendsData, error: friendsError } = await supabase
         .from('friends')
@@ -126,20 +106,25 @@ export default function CreateLightPage() {
     }
   };
 
-  const toggleListSelection = (listId: string) => {
-    setSelectedLists(prev => 
-      prev.includes(listId) 
-        ? prev.filter(id => id !== listId)
-        : [...prev, listId]
-    );
-  };
-
   const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends(prev => 
       prev.includes(friendId) 
         ? prev.filter(id => id !== friendId)
         : [...prev, friendId]
     );
+  };
+
+  const selectAllFriends = () => {
+    const allFriendIds = friends.map(friend => friend.friend.id);
+    const allSelected = allFriendIds.every(id => selectedFriends.includes(id));
+    
+    if (allSelected) {
+      // Deselect all friends
+      setSelectedFriends([]);
+    } else {
+      // Select all friends
+      setSelectedFriends(allFriendIds);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,21 +139,26 @@ export default function CreateLightPage() {
     }
   };
 
-  const setFromNow = () => {
-    const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000); // Add 1 hour
+  // Handle automatic date/time adjustments
+  const handleStartDateChange = (newStartDate: string) => {
+    setStartDate(newStartDate);
     
-    // Format dates as YYYY-MM-DD
-    const today = now.toISOString().split('T')[0];
+    // If start date is after end date, set end date to start date
+    if (newStartDate > endDate) {
+      setEndDate(newStartDate);
+    }
+  };
+
+  const handleStartTimeChange = (newStartTime: string) => {
+    setStartTime(newStartTime);
     
-    // Format times as HH:MM
-    const currentTime = now.toTimeString().slice(0, 5);
-    const oneHourLaterTime = oneHourLater.toTimeString().slice(0, 5);
-    
-    setStartDate(today);
-    setStartTime(currentTime);
-    setEndDate(today);
-    setEndTime(oneHourLaterTime);
+    // If start date equals end date and start time is after or equal to end time, set end time to start time + 1 hour
+    if (startDate === endDate && newStartTime >= endTime) {
+      const startDateTime = new Date(`${startDate}T${newStartTime}:00`);
+      const oneHourLater = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+      const newEndTime = oneHourLater.toTimeString().slice(0, 5);
+      setEndTime(newEndTime);
+    }
   };
 
   const compressImage = async (file: File) => {
@@ -201,24 +191,8 @@ export default function CreateLightPage() {
     if (!currentUser) return;
 
     try {
-      // Get all users to invite
-      const usersToInvite: string[] = [];
-
-      // Add users from selected lists
-      if (selectedLists.length > 0) {
-        const { data: listMembers, error: listMembersError } = await supabase
-          .from('list_members')
-          .select('user_id')
-          .in('list_id', selectedLists);
-        
-        if (listMembersError) throw listMembersError;
-        
-        const listUserIds = listMembers?.map(member => member.user_id) || [];
-        usersToInvite.push(...listUserIds);
-      }
-
-      // Add directly selected friends
-      usersToInvite.push(...selectedFriends);
+      // Get all users to invite (only selected friends)
+      const usersToInvite = [...selectedFriends];
 
       // Remove duplicates
       const uniqueUserIds = [...new Set(usersToInvite)];
@@ -369,245 +343,205 @@ export default function CreateLightPage() {
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
       <h1 className="text-3xl font-bold text-green-800 mb-6">Create Light</h1>
       
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6 mb-24">
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-green-900 mb-2">
-              Name
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-green-900 mb-2">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Location */}
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-green-900 mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* From Now Button */}
-          <div className="mb-2">
-            <button
-              type="button"
-              onClick={setFromNow}
-              className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded border border-green-300 hover:bg-green-200 transition"
-            >
-              from now
-            </button>
-          </div>
-
-          {/* Start Date and Time */}
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Event Details Section */}
+          <div className="space-y-6 p-4 bg-green-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-900 mb-4">Event Details</h3>
+            
+            {/* Name */}
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
-                Start date
+              <label htmlFor="title" className="block text-sm font-medium text-green-900 mb-2">
+                Name
               </label>
               <input
-                type="date"
-                id="startDate"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
-            <div>
-              <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
-                Start time
-              </label>
-              <input
-                type="time"
-                id="startTime"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-          </div>
 
-          {/* End Date and Time */}
-          <div className="grid grid-cols-2 gap-4">
+            {/* Image Upload */}
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
-                End date
+              <label htmlFor="image" className="block text-sm font-medium text-green-900 mb-2">
+                Image
               </label>
               <input
-                type="date"
-                id="endDate"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                type="file"
+                id="image"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="image"
+                className="block w-full px-3 py-2 bg-white border border-green-300 rounded-lg cursor-pointer text-center text-green-600 hover:bg-gray-50 transition"
+              >
+                Choose File
+              </label>
+              {imagePreview && (
+                <div className="mt-2">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-green-900 mb-2">
+                Description
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
+
+            {/* Location */}
             <div>
-              <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
-                End time
+              <label htmlFor="location" className="block text-sm font-medium text-green-900 mb-2">
+                Location
               </label>
               <input
-                type="time"
-                id="endTime"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                type="text"
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Max Participants */}
+            <div>
+              <label htmlFor="maxLimit" className="block text-sm font-medium text-green-900 mb-2">
+                Max participants (optional)
+              </label>
+              <input
+                type="number"
+                id="maxLimit"
+                value={maxLimit}
+                onChange={(e) => setMaxLimit(e.target.value)}
+                min="1"
+                className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
-          
-          {/* Time validation error */}
-          {timeError && (
-            <div className="text-red-600 text-sm mt-1">
-              {timeError}
-            </div>
-          )}
 
-          {/* Max Limit */}
-          <div>
-            <label htmlFor="maxLimit" className="block text-sm font-medium text-green-900 mb-2">
-              Max limit (optional)
-            </label>
-            <input
-              type="number"
-              id="maxLimit"
-              value={maxLimit}
-              onChange={(e) => setMaxLimit(e.target.value)}
-              min="1"
-              className="w-full px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Image Upload */}
-          <div>
-            <label htmlFor="image" className="block text-sm font-medium text-green-900 mb-2">
-              Image
-            </label>
-            <input
-              type="file"
-              id="image"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <label
-              htmlFor="image"
-              className="block w-full px-3 py-2 border border-green-300 rounded-lg cursor-pointer text-center text-green-600 hover:bg-green-50 transition"
-            >
-              Choose File
-            </label>
-            {imagePreview && (
-              <div className="mt-2">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-32 object-cover rounded-lg"
+          {/* Date & Time Section */}
+          <div className="space-y-6 p-4 bg-blue-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-900 mb-4">Date & Time</h3>
+            
+            {/* Start Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-green-900 mb-2">
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  value={startDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
+              </div>
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-green-900 mb-2">
+                  Start time
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  value={startTime}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* End Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-green-900 mb-2">
+                  End date
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-green-900 mb-2">
+                  End time
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            {/* Time validation error */}
+            {timeError && (
+              <div className="text-red-600 text-sm mt-1">
+                {timeError}
               </div>
             )}
           </div>
 
-          {/* Invite Mode Toggle */}
-          <div>
-            <label className="block text-sm font-medium text-green-900 mb-2">
-              Invite
-            </label>
-            <div className="flex bg-green-200 rounded-full p-1">
-              <button
-                type="button"
-                onClick={() => setInviteMode('lists')}
-                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
-                  inviteMode === 'lists'
-                    ? 'bg-white text-green-800 shadow'
-                    : 'text-green-700 hover:text-green-800'
-                }`}
-              >
-                Lists
-              </button>
-              <button
-                type="button"
-                onClick={() => setInviteMode('friends')}
-                className={`flex-1 px-4 py-2 rounded-full font-medium transition ${
-                  inviteMode === 'friends'
-                    ? 'bg-white text-green-800 shadow'
-                    : 'text-green-700 hover:text-green-800'
-                }`}
-              >
-                Friends
-              </button>
-            </div>
-          </div>
-
-          {/* Invite Options */}
-          <div>
-            <h3 className="text-sm font-medium text-green-900 mb-3">
-              {inviteMode === 'lists' ? 'Select Lists' : 'Select Friends'} ({inviteMode === 'lists' ? selectedLists.length : selectedFriends.length} selected)
-            </h3>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {inviteMode === 'lists' ? (
-                lists.length === 0 ? (
-                  <div className="text-center text-green-900 py-4">
-                    No lists found. Create a list first!
-                  </div>
-                ) : (
-                  lists.map((list) => (
-                    <div key={list.id} className="flex items-center gap-3 p-3 border rounded-lg bg-green-50">
-                      <input
-                        type="checkbox"
-                        id={list.id}
-                        checked={selectedLists.includes(list.id)}
-                        onChange={() => toggleListSelection(list.id)}
-                        className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
-                      />
-                      <label htmlFor={list.id} className="flex-1 font-medium text-green-900 cursor-pointer">
-                        {list.name} ({list.member_count} members)
-                      </label>
-                    </div>
-                  ))
-                )
-              ) : (
-                friends.length === 0 ? (
+          {/* Invite Friends Section */}
+          <div className="space-y-4 p-4 bg-yellow-50 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-900 mb-4">Invite Friends</h3>
+            
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-green-900">
+                  Select Friends ({selectedFriends.length} selected)
+                </h4>
+                {friends.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={selectAllFriends}
+                    className="text-sm text-green-600 hover:text-green-800 font-medium"
+                  >
+                    {friends.every(friend => selectedFriends.includes(friend.friend.id)) ? 'Deselect All' : 'Select All'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {friends.length === 0 ? (
                   <div className="text-center text-green-900 py-4">
                     No friends found. Add friends first!
                   </div>
                 ) : (
                   friends.map((friend) => (
-                    <div key={friend.friend.id} className="flex items-center gap-3 p-3 border rounded-lg bg-green-50">
+                    <div key={friend.friend.id} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
                       <input
                         type="checkbox"
                         id={friend.friend.id}
@@ -627,8 +561,8 @@ export default function CreateLightPage() {
                       </label>
                     </div>
                   ))
-                )
-              )}
+                )}
+              </div>
             </div>
           </div>
 

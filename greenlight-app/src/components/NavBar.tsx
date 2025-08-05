@@ -12,7 +12,6 @@ import { getNotificationCount } from "@/lib/notifications";
 
 export default function UserMenu() {
   const [user, setUser] = useState<User | null>(null);
-  const [open, setOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,11 +95,10 @@ export default function UserMenu() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
         setShowNotifications(false);
       }
     }
-    if (open || showNotifications) {
+    if (showNotifications) {
       document.addEventListener("mousedown", handleClickOutside);
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -108,12 +106,11 @@ export default function UserMenu() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open, showNotifications]);
+  }, [showNotifications]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setOpen(false);
     setShowNotifications(false);
     // Redirect to landing page
     window.location.href = '/';
@@ -126,13 +123,7 @@ export default function UserMenu() {
   };
 
   const handleAvatarClick = () => {
-    if (showNotifications) {
-      setShowNotifications(false);
-      setOpen(false);
-    } else {
-      setShowNotifications(true);
-      setOpen(false);
-    }
+    setShowNotifications(!showNotifications);
   };
 
   if (!user) return null;
@@ -167,48 +158,41 @@ export default function UserMenu() {
             onClose={() => setShowNotifications(false)}
             onNotificationUpdate={handleNotificationUpdate}
           />
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 space-y-3">
+            {/* User Info */}
+            <div className="flex items-center gap-3">
+              {avatarUrl ? (
+                <Image src={avatarUrl} alt="Profile" width={32} height={32} className="rounded-full object-cover" />
+              ) : (
+                <FaUserCircle className="w-8 h-8 text-green-400" />
+              )}
+              <div className="flex-1">
+                <div className="font-semibold text-green-900 text-sm truncate">{name}</div>
+                <div className="text-green-700 text-xs truncate">{user.email}</div>
+              </div>
+            </div>
+            
+            <Link
+              href="/profile/edit"
+              className="block w-full px-4 py-2 bg-green-100 text-green-800 rounded font-semibold hover:bg-green-200 transition text-center"
+              onClick={() => setShowNotifications(false)}
+            >
+              Edit Profile
+            </Link>
             <button
               onClick={() => {
+                handleLogout();
                 setShowNotifications(false);
-                setOpen(true);
               }}
-              className="w-full px-4 py-2 bg-green-100 text-green-800 rounded font-semibold hover:bg-green-200 transition text-center"
+              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded font-semibold hover:bg-gray-200 transition text-center"
             >
-              User Menu
+              Log out
             </button>
           </div>
         </div>
       )}
       
-      {open && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border p-4 flex flex-col items-start">
-          <div className="flex items-center gap-3 mb-3 w-full">
-            {avatarUrl ? (
-              <Image src={avatarUrl} alt="Profile" width={48} height={48} className="rounded-full object-cover" />
-            ) : (
-              <FaUserCircle className="w-12 h-12 text-green-400" />
-            )}
-            <div className="flex-1">
-              <div className="font-semibold text-green-900 text-base truncate">{name}</div>
-              <div className="text-green-700 text-xs truncate">{user.email}</div>
-            </div>
-          </div>
-          <Link
-            href="/profile/edit"
-            className="mb-2 px-4 py-2 bg-green-100 text-green-800 rounded font-semibold hover:bg-green-200 transition w-full text-center"
-            onClick={() => setOpen(false)}
-          >
-            Edit Profile
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="text-red-600 hover:underline text-sm mb-2 w-full text-left"
-          >
-            Log out
-          </button>
-        </div>
-      )}
+
     </div>
   );
 } 

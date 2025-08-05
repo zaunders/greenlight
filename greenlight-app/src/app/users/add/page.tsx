@@ -109,7 +109,7 @@ export default function AddFriendsPage() {
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
       <h1 className="text-3xl font-bold text-green-800 mb-6">Add Friends</h1>
       
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6">
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6 mb-24">
         {/* Search Bar */}
         <div className="mb-4">
           <input

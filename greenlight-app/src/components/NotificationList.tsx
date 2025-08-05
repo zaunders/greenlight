@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, type Notification } from "@/lib/notifications";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import NotificationPreferences from "./NotificationPreferences";
 
 interface NotificationListProps {
@@ -18,7 +19,6 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
   const [markingRead, setMarkingRead] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [showReadNotifications, setShowReadNotifications] = useState(false);
   const [navigating, setNavigating] = useState<string | null>(null);
   const router = useRouter();
 
@@ -91,25 +91,7 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
     }
   };
 
-  const handleClearReadNotifications = async () => {
-    try {
-      // Get all read notification IDs
-      const readNotificationIds = notifications
-        .filter(n => n.read)
-        .map(n => n.id);
-      
-      // Delete all read notifications
-      for (const notificationId of readNotificationIds) {
-        await deleteNotification(notificationId);
-      }
-      
-      // Update local state to remove read notifications
-      setNotifications(prev => prev.filter(n => !n.read));
-      onNotificationUpdate?.();
-    } catch (error) {
-      console.error('Error clearing read notifications:', error);
-    }
-  };
+
 
   const formatTimeAgo = (dateString: string) => {
     const now = new Date();
@@ -164,6 +146,16 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
     );
   }
 
+  const displayedNotifications = notifications
+    .filter(notification => !notification.read)
+    .slice(0, 3);
+
+  const hasMoreNotifications = notifications
+    .filter(notification => !notification.read)
+    .length > 3;
+
+  const shouldShowSeeAll = hasMoreNotifications || notifications.length > 0;
+
   return (
     <div className="max-h-96 overflow-y-auto">
       <div className="p-4 border-b border-gray-200">
@@ -179,22 +171,6 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
               </button>
             )}
             <button
-              onClick={() => setShowReadNotifications(!showReadNotifications)}
-              className="text-sm text-gray-600 hover:text-gray-800"
-              title={showReadNotifications ? "Hide read notifications" : "Show read notifications"}
-            >
-              {showReadNotifications ? "Hide Read" : "Show Read"}
-            </button>
-            {showReadNotifications && notifications.some(n => n.read) && (
-              <button
-                onClick={handleClearReadNotifications}
-                className="text-sm text-red-600 hover:text-red-800"
-                title="Clear all read notifications"
-              >
-                Clear
-              </button>
-            )}
-            <button
               onClick={() => setShowPreferences(true)}
               className="text-sm text-gray-600 hover:text-gray-800"
               title="Notification settings"
@@ -206,15 +182,13 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
         {notifications.length === 0 && (
           <p className="text-gray-500 text-sm">No notifications</p>
         )}
-        {notifications.length > 0 && !notifications.some(n => !n.read) && !showReadNotifications && (
+        {notifications.length > 0 && !notifications.some(n => !n.read) && (
           <p className="text-gray-500 text-sm">No unread notifications</p>
         )}
       </div>
       
       <div className="divide-y divide-gray-100">
-        {notifications
-          .filter(notification => showReadNotifications || !notification.read)
-          .map((notification) => (
+        {displayedNotifications.map((notification) => (
           <div
             key={notification.id}
             className={`p-4 hover:bg-gray-50 cursor-pointer transition ${
@@ -276,6 +250,19 @@ export default function NotificationList({ userId, onClose, onNotificationUpdate
             </div>
           </div>
         ))}
+        
+        {/* See All Link */}
+        {shouldShowSeeAll && (
+          <div className="p-4 border-t border-gray-100">
+            <Link
+              href="/notifications"
+              className="block w-full text-center text-green-600 hover:text-green-800 font-medium"
+              onClick={onClose}
+            >
+              See All Notifications
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

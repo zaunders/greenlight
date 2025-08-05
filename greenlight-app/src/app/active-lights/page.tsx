@@ -291,7 +291,7 @@ export default function ActiveLightsPage() {
         </div>
       )}
       
-      <div className="w-full max-w-md space-y-4">
+      <div className="w-full max-w-md space-y-4 mb-24">
         {filteredInvitations.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <p className="text-green-900 mb-2">

@@ -68,6 +68,10 @@ export default function LightPage() {
   const [loading, setLoading] = useState(true);
   const [showAllInvited, setShowAllInvited] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showUserPopup, setShowUserPopup] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<Attendee | null>(null);
+  const [addingFriend, setAddingFriend] = useState(false);
+  const [userFriends, setUserFriends] = useState<string[]>([]);
   const router = useRouter();
   const params = useParams();
   const lightId = params.id as string;
@@ -81,6 +85,7 @@ export default function LightPage() {
         fetchLight();
         fetchAttendees();
         fetchMessages();
+        fetchUserFriends(data.user.id);
       }
     });
   }, [lightId]);
@@ -139,6 +144,59 @@ export default function LightPage() {
     } catch (err: any) {
       console.error('Error fetching messages:', err);
     }
+  };
+
+  const fetchUserFriends = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('friends')
+        .select('friend_id')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      setUserFriends(data?.map(f => f.friend_id) || []);
+    } catch (err: any) {
+      console.error('Error fetching friends:', err);
+    }
+  };
+
+  const handleAvatarClick = (attendee: Attendee) => {
+    // Don't show popup for current user
+    if (currentUser && attendee.user_id === currentUser.id) return;
+    
+    setSelectedUser(attendee);
+    setShowUserPopup(true);
+  };
+
+  const addFriend = async (friendId: string) => {
+    if (!currentUser) return;
+    
+    setAddingFriend(true);
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .insert([
+          {
+            user_id: currentUser.id,
+            friend_id: friendId,
+          }
+        ]);
+      
+      if (error) throw error;
+      
+      // Refresh friends list
+      await fetchUserFriends(currentUser.id);
+      setShowUserPopup(false);
+    } catch (err: any) {
+      console.error('Error adding friend:', err);
+    } finally {
+      setAddingFriend(false);
+    }
+  };
+
+  const closeUserPopup = () => {
+    setShowUserPopup(false);
+    setSelectedUser(null);
   };
 
   const deleteLight = async () => {
@@ -439,13 +497,19 @@ export default function LightPage() {
             <div className="flex -space-x-2">
               {acceptedAttendees.slice(0, maxAvatars).map((attendee, index) => {
                 if (!attendee || !attendee.user) return null;
+                const isCurrentUser = currentUser && attendee.user_id === currentUser.id;
                 return (
                   <div
                     key={attendee.id}
                     className="relative group"
                     title={attendee.user.username}
                   >
-                    <div className="w-8 h-8 rounded-full border-2 border-white bg-green-200 flex items-center justify-center">
+                    <div 
+                      className={`w-8 h-8 rounded-full border-2 border-white bg-green-200 flex items-center justify-center ${
+                        !isCurrentUser ? 'cursor-pointer hover:ring-2 hover:ring-green-500 hover:ring-offset-2 transition-all' : ''
+                      }`}
+                      onClick={() => !isCurrentUser && handleAvatarClick(attendee)}
+                    >
                       {attendee.user.avatar_url ? (
                         <img 
                           src={attendee.user.avatar_url} 
@@ -461,6 +525,7 @@ export default function LightPage() {
                     {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                       {attendee.user.username}
+                      {!isCurrentUser && <span className="block text-gray-300 text-xs">Click to add friend</span>}
                     </div>
                   </div>
                 );
@@ -769,8 +834,62 @@ export default function LightPage() {
           )}
         </div>
       </div>
+      
+      <div className="mb-24"></div>
 
-
+      {/* User Popup Dialog */}
+      {showUserPopup && selectedUser && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeUserPopup}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center">
+              {/* Avatar */}
+              <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center mb-4">
+                {selectedUser.user.avatar_url ? (
+                  <img 
+                    src={selectedUser.user.avatar_url} 
+                    alt={selectedUser.user.username}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-green-600 text-2xl font-medium">
+                    {selectedUser.user.username.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              
+              {/* Username */}
+              <h3 className="text-xl font-semibold text-green-900 mb-4">
+                {selectedUser.user.username}
+              </h3>
+              
+              {/* Buttons */}
+              <div className="flex gap-3 w-full">
+                {!userFriends.includes(selectedUser.user_id) && (
+                  <button
+                    onClick={() => addFriend(selectedUser.user_id)}
+                    disabled={addingFriend}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    {addingFriend ? 'Adding...' : '+ Add Friend'}
+                  </button>
+                )}
+                <button
+                  onClick={closeUserPopup}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg font-medium shadow hover:bg-gray-600 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* All Invited Modal */}
       {showAllInvited && (
