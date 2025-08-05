@@ -62,28 +62,23 @@ export default function Home() {
       />
       
       {/* Top bar - positioned at very top of screen */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center justify-center" style={{backgroundColor: '#e3e6dd'}}>
+      <div className="fixed top-0 left-0 right-0 z-30 h-20 flex flex-col items-center justify-center px-4" style={{backgroundColor: '#e3e6dd'}}>
         <h1 className="text-3xl font-bold text-green-800">
           Greenlight
         </h1>
+        <p className="text-base text-green-700 text-center mt-1">
+          Make a thing, invite your friends, enjoy each others company.
+        </p>
       </div>
       
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-7.5 px-8 pb-20">
-        
-        {/* Description and button at bottom */}
-        <div className="flex flex-col items-center gap-4 px-8">
-          <p className="text-lg text-green-900 text-center bg-white bg-opacity-95 px-8 py-3 rounded-lg shadow-xl max-w-2xl">
-            Make a thing, invite your friends, enjoy each others company.
-          </p>
-          
-          <button
-            onClick={() => setShowLogin(true)}
-            className="px-16 py-4 bg-green-600 text-white rounded-full text-lg font-semibold shadow hover:bg-green-700 transition"
-          >
-            Get Started
-          </button>
-        </div>
+      {/* Get Started Button */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center px-8 pb-20">
+        <button
+          onClick={() => setShowLogin(true)}
+          className="px-16 py-4 bg-green-600 text-white rounded-full text-lg font-semibold shadow hover:bg-green-700 transition"
+        >
+          Get Started
+        </button>
       </div>
       
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
