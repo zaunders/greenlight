@@ -62,7 +62,7 @@ export default function Home() {
       />
       
       {/* Top bar - positioned at very top of screen */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-20 flex flex-col items-center justify-center px-4" style={{backgroundColor: '#e3e6dd'}}>
+      <div className="fixed top-0 left-0 right-0 z-30 h-20 flex flex-col items-center justify-center px-4 pt-2.5" style={{backgroundColor: '#e3e6dd'}}>
         <h1 className="text-3xl font-bold text-green-800">
           Greenlight
         </h1>
@@ -75,7 +75,7 @@ export default function Home() {
       <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center px-8 pb-20">
         <button
           onClick={() => setShowLogin(true)}
-          className="px-16 py-4 bg-green-600 text-white rounded-full text-lg font-semibold shadow hover:bg-green-700 transition"
+          className="px-16 py-4 pb-2.5 bg-green-600 text-white rounded-full text-lg font-semibold shadow hover:bg-green-700 transition"
         >
           Get Started
         </button>
