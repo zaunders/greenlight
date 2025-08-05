@@ -100,7 +100,7 @@ export default function MyLightsPage() {
   return (
     <div className="min-h-screen bg-green-50 flex flex-col items-center py-8 px-2">
       <h1 className="text-3xl font-bold text-green-800 mb-6">My Lights</h1>
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6 mb-24">
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
         {fetching ? (
           <div className="text-center text-green-900">Loading lights...</div>
         ) : lights.length === 0 ? (
@@ -168,6 +168,8 @@ export default function MyLightsPage() {
       >
         + Create Light
       </Link>
+      
+      <div className="mb-24"></div>
     </div>
   );
 } 
