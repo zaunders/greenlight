@@ -54,7 +54,7 @@ export default function Home() {
       <div 
         className="fixed inset-0 z-0 bg-gradient-to-b from-green-100 to-green-300"
         style={{
-          backgroundImage: 'url(./greenlight_pastel_centered.jpg)',
+          backgroundImage: 'url(./greenlight_land_center.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -63,7 +63,7 @@ export default function Home() {
       
       {/* Top bar - positioned at very top of screen */}
       <div className="fixed top-0 left-0 right-0 z-30 h-20 flex flex-col items-center justify-center px-4 pt-2.5" style={{backgroundColor: '#e3e6dd'}}>
-        <h1 className="text-3xl font-bold text-green-800">
+        <h1 className="text-3xl fontgit-bold text-green-800">
           Greenlight
         </h1>
         <p className="text-base text-green-700 text-center mt-1">
