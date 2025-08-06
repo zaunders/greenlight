@@ -5,6 +5,21 @@
   --foreground: #171717;
 }
 
+/* iOS Safe Area Support */
+.safe-area-top {
+  padding-top: max(env(safe-area-inset-top), 40px);
+}
+
+.safe-area-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 20px);
+}
+
+/* Enhanced safe area for pages */
+.min-h-screen {
+  padding-top: max(calc(env(safe-area-inset-top) + 32px), 72px);
+  padding-bottom: max(calc(env(safe-area-inset-bottom) + 32px), 52px);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

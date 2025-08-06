@@ -61,10 +61,10 @@ export default function Home() {
         }}
       />
       
-      {/* Top bar - positioned at very top of screen */}
-      <div className="fixed top-0 left-0 right-0 z-30 h-20 flex flex-col items-center justify-center px-4 pt-2.5" style={{backgroundColor: '#e3e6dd'}}>
+      {/* Top bar - positioned with safe area padding */}
+      <div className="fixed top-0 left-0 right-0 z-30 flex flex-col items-center justify-center px-4" style={{backgroundColor: '#e3e6dd', paddingTop: 'max(env(safe-area-inset-top), 40px)', paddingBottom: '20px'}}>
         <h1 className="text-3xl fontgit-bold text-green-800">
-          Greenlight
+          Greenlight 📱 Live!
         </h1>
         <p className="text-base text-green-700 text-center mt-1">
           Make a thing, invite your friends, enjoy each others company.

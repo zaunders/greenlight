@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Greenlight</title>
+    <base href="/" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <link rel="icon" type="image/png" href="favicon.ico" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Greenlight" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f0fdf4;
+            color: #166534;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+        }
+        .message {
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+        .button {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .button:hover {
+            background-color: #15803d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img class="logo" src="greenlight.png" alt="Greenlight" />
+        <h1>Greenlight</h1>
+        <p class="message">Welcome to Greenlight - Your social planning app</p>
+        <p>This is a development version running in the iOS app.</p>
+        <button class="button" onclick="openDevServer()">Open Development Version</button>
+        
+        <script>
+            function openDevServer() {
+                // In a real deployment, this would navigate to your actual app
+                // For now, we'll redirect to localhost for development
+                window.location.href = 'http://localhost:3000';
+            }
+            
+            // Auto-redirect after 3 seconds for development
+            setTimeout(function() {
+                console.log('Development mode: redirecting to localhost:3000');
+                // Uncomment the next line when your dev server is running
+                // window.location.href = 'http://localhost:3000';
+            }, 3000);
+        </script>
+    </div>
+</body>
+</html>

@@ -133,7 +133,7 @@ export default function UserMenu() {
   const avatarUrl = user.user_metadata?.avatar_url;
 
   return (
-    <div className="fixed top-4 right-6 z-50" ref={menuRef}>
+    <div className="fixed right-6 z-50" style={{top: 'max(calc(env(safe-area-inset-top) + 16px), 56px)'}} ref={menuRef}>
       <button
         onClick={handleAvatarClick}
         className="text-green-700 text-3xl focus:outline-none relative"
