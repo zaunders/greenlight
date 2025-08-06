@@ -8,6 +8,6 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Add configuration to help with chunk loading issues
-  output: 'standalone',
+  // Development mode for mobile testing
+  // We'll use the dev server with Capacitor for now
 }; 
